@@ -1,0 +1,47 @@
+<Project DefaultTargets="Build">
+  <!-- Set the repository root into a variable -->
+  <PropertyGroup>
+    <SourceRoot>$(MSBuildThisFileDirectory)</SourceRoot>
+  </PropertyGroup>
+
+  <!-- Set output folder for created NuGet packages -->
+  <PropertyGroup>
+    <PackageOutputPath Condition=" '$(PackageOutputPath)'=='' ">$(SourceRoot)/Artifacts/$(Configuration)</PackageOutputPath>
+  </PropertyGroup>
+
+  <!-- Versioning properties -->
+  <PropertyGroup>
+    <AssemblyVersion>1.0.6.0</AssemblyVersion>
+    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">2.0.4</VersionPrefix>
+  </PropertyGroup>
+
+  <!-- For Debug builds generated a date/time dependent version suffix -->
+  <PropertyGroup Condition=" '$(Configuration)'=='Debug' ">
+    <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">dev</VersionSuffix>
+    <VersionSuffix Condition=" '$(VersionDateSuffix)'!='' ">$(VersionSuffix)-$(VersionDateSuffix)</VersionSuffix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AutoBogus_Moq>1.0.0</AutoBogus_Moq>
+    <dotnet_xunit>2.3.1</dotnet_xunit>
+    <FluentAssertions>4.19.4</FluentAssertions>
+    <Microsoft_NET_Test_Sdk>15.6.0</Microsoft_NET_Test_Sdk>
+    <Microsoft_Orleans_Client>2.0.3</Microsoft_Orleans_Client>
+    <Microsoft_Orleans_Core>2.0.3</Microsoft_Orleans_Core>
+    <Microsoft_Orleans_Core_Legacy>2.0.3</Microsoft_Orleans_Core_Legacy>
+    <Microsoft_Orleans_OrleansCodeGenerator_Build>2.0.3</Microsoft_Orleans_OrleansCodeGenerator_Build>
+    <Microsoft_Orleans_OrleansProviders>2.0.4-fix</Microsoft_Orleans_OrleansProviders>
+    <Microsoft_Orleans_Runtime>2.0.4</Microsoft_Orleans_Runtime>
+    <Microsoft_Orleans_Server>2.0.4</Microsoft_Orleans_Server>
+    <Microsoft_Orleans_Runtime_Legacy>2.0.4</Microsoft_Orleans_Runtime_Legacy>
+    <Microsoft_Orleans_TestingHost>2.0.4</Microsoft_Orleans_TestingHost>
+    <Moq>4.7.10</Moq>
+    <Newtonsoft_Json>10.0.3</Newtonsoft_Json>
+    <Nito_AsyncEx_Tasks>5.0.0-pre-02</Nito_AsyncEx_Tasks>
+    <Serilog>2.5.0</Serilog>
+    <StackExchange_Redis_StrongName>1.2.6</StackExchange_Redis_StrongName>
+    <xunit>2.3.1</xunit>
+    <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
+    <Zuercher_Orleans_Testing_Utils>1.0.2-dev</Zuercher_Orleans_Testing_Utils>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Configurations>Debug;Release;Test</Configurations>
+    <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    
+    <Authors>Austin Hanson</Authors>
+    <Company>Zuercher Technologies</Company>
+    <PackageId>Zuercher.Orleans.Streaming.Redis</PackageId>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">
+    <DefineConstants>TRACE;TEST</DefineConstants>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="LICENSE" />
+    <None Remove="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Client" Version="$(Microsoft_Orleans_Client)" />
+    <PackageReference Include="Microsoft.Orleans.Server" Version="$(Microsoft_Orleans_Server)" />
+    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="$(Microsoft_Orleans_OrleansCodeGenerator_Build)" />
+    <PackageReference Include="Microsoft.Orleans.Core.Legacy" Version="$(Microsoft_Orleans_Core_Legacy)" />
+    <PackageReference Include="Microsoft.Orleans.Runtime.Legacy" Version="$(Microsoft_Orleans_Runtime_Legacy)" />
+    <PackageReference Include="Nito.AsyncEx.Tasks" Version="$(Nito_AsyncEx_Tasks)" />
+    <PackageReference Include="Serilog" Version="$(Serilog)" />
+    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis_StrongName)" />
+    <PackageReference Include="Zuercher.Orleans.Redis.Common" Version="2.0.4-dev7" />
+  </ItemGroup>
+</Project>
