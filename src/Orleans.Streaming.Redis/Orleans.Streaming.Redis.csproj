@@ -8,6 +8,10 @@
     <Authors>Austin Hanson</Authors>
     <Company>Zuercher Technologies</Company>
     <PackageId>Zuercher.Orleans.Streaming.Redis</PackageId>
+    <Description>Provides a Redis backed Microsoft Orleans Stream Provider implementation.</Description>
+    <PackageProjectUrl>https://github.com/berdon/Orleans.Providers.Redis</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/berdon/Orleans.Providers.Redis</RepositoryUrl>
+    <PackageLicenseUrl>https://github.com/berdon/Orleans.Providers.Redis/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">

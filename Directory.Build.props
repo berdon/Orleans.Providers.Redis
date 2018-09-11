@@ -11,7 +11,7 @@
 
   <!-- Versioning properties -->
   <PropertyGroup>
-    <AssemblyVersion>1.0.6.0</AssemblyVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">2.0.4</VersionPrefix>
   </PropertyGroup>
 
