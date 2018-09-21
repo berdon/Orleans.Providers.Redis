@@ -19,6 +19,7 @@ namespace Orleans.Streaming
                 .ConfigureServices(services =>
                 {
                     services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
+                    services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
                     services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
                     services.AddSingleton<IRedisDataAdapter, RedisDataAdapter>();
                     services.AddTransient<IConfigurationValidator>(sp => new RedisStreamOptionsValidator(sp.GetOptionsByName<RedisStreamOptions>(name), name));
@@ -58,6 +59,7 @@ namespace Orleans.Streaming
                  .ConfigureServices(services =>
                  {
                      services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
+                     services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
                      services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
                      services.AddSingleton<IRedisDataAdapter, RedisDataAdapter>();
                      services.AddTransient<IConfigurationValidator>(sp => new RedisStreamOptionsValidator(sp.GetOptionsByName<RedisStreamOptions>(name), name));

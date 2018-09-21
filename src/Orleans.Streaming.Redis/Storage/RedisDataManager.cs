@@ -8,16 +8,23 @@ using System.Threading.Tasks;
 using System.Linq;
 using Orleans.Providers.Streams.Redis;
 using Orleans.Configuration;
+using Serilog.Core;
+using Orleans.Redis.Common;
+using System.Threading;
 
 namespace Orleans.Streaming.Redis.Storage
 {
-    internal class RedisDataManager
+    internal class RedisDataManager : IRedisDataManager
     {
+        private const int MINIMUM_KEY_LENGTH = 5;
+        private const int MAXIMUM_KEY_LENGTH = 256;
+
         public const int UnlimitedMessageCount = -1;
 
         public string QueueName { get; private set; }
 
         private readonly RedisStreamOptions _options;
+        private readonly IConnectionMultiplexerFactory _connectionMultiplexerFactory;
         private readonly ILogger _logger;
 
         private readonly ConcurrentQueue<RedisValue> _queue = new ConcurrentQueue<RedisValue>();
@@ -25,33 +32,38 @@ namespace Orleans.Streaming.Redis.Storage
 
         private static readonly IEnumerable<RedisValue> EmptyRedisValueEnumerable = Array.Empty<RedisValue>();
 
+        private bool _initialized = false;
         private IConnectionMultiplexer _connectionMultiplexer;
 
-        private RedisDataManager(RedisStreamOptions options, ILogger loggerFactory, string queueName)
+        internal ConcurrentQueue<RedisValue> TestHook_Queue => _queue;
+
+        private RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName)
         {
             queueName = SanitizeQueueName(queueName);
             ValidateQueueName(queueName);
 
             _options = options;
-            _logger = loggerFactory.ForContext<RedisDataManager>();
+            _connectionMultiplexerFactory = connectionMultiplexerFactory;
+            _logger = (loggerFactory ?? SilentLogger.Logger).ForContext<RedisDataManager>();
             QueueName = queueName;
 
             _redisChannel = new RedisChannel(QueueName, RedisChannel.PatternMode.Literal);
         }
 
-        public RedisDataManager(RedisStreamOptions options, ILogger loggerFactory, string queueName, string serviceId)
-            : this(options, loggerFactory, serviceId + "-" + queueName) { }
+        public RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName, string serviceId)
+            : this(options, connectionMultiplexerFactory, loggerFactory, serviceId + ":" + queueName) { }
 
-        public async Task InitAsync()
+        public async Task InitAsync(CancellationToken ct = default)
         {
             var startTime = DateTimeOffset.UtcNow;
 
             try
             {
-                _connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(_options.ConnectionString);
+                _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
 
-                var subscription = _connectionMultiplexer.GetSubscriber();
-                await subscription.SubscribeAsync(_redisChannel, OnChannelReceivedData);
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
+                _initialized = true;
             }
             catch (Exception exc)
             {
@@ -63,16 +75,45 @@ namespace Orleans.Streaming.Redis.Storage
             }
         }
 
-        public async Task StopAsync()
+        public async Task SubscribeAsync(CancellationToken ct = default)
         {
             var startTime = DateTimeOffset.UtcNow;
 
             try
             {
                 var subscription = _connectionMultiplexer.GetSubscriber();
-                await subscription.UnsubscribeAsync(_redisChannel, OnChannelReceivedData);
+                await subscription.SubscribeAsync(_redisChannel, OnChannelReceivedData);
+
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
+            }
+            catch (Exception exc)
+            {
+                ReportErrorAndRethrow(exc);
+            }
+            finally
+            {
+                CheckAlertSlowAccess(startTime);
+            }
+        }
+
+        public async Task StopAsync(CancellationToken ct = default)
+        {
+            var startTime = DateTimeOffset.UtcNow;
+
+            if (!_initialized) throw new InvalidOperationException("Cannot call StopAsync before InitAsync");
+
+            try
+            {
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
+                var subscription = _connectionMultiplexer.GetSubscriber();
+                await subscription.UnsubscribeAllAsync();
+
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
 
                 _connectionMultiplexer.Dispose();
+
+                _initialized = false;
             }
             catch (Exception exc)
             {
@@ -144,7 +185,7 @@ namespace Orleans.Streaming.Redis.Storage
         private void ReportErrorAndRethrow(Exception exc, [CallerMemberName] string operation = null)
         {
             _logger.Error(exc, "Error doing {Operation} for Redis storage queue {QueueName}", operation, QueueName);
-            throw new AggregateException($"Error doing {operation} for Redis storage queue {QueueName}");
+            throw new AggregateException($"Error doing {operation} for Redis storage queue {QueueName}", exc);
         }
 
         private void CheckAlertSlowAccess(DateTimeOffset startOperation, [CallerMemberName] string operation = null)
@@ -158,61 +199,52 @@ namespace Orleans.Streaming.Redis.Storage
         private void OnChannelReceivedData(RedisChannel channel, RedisValue value)
         {
             _queue.Enqueue(value);
+            _logger.Debug("{Count}", _queue.Count);
+
+            // Dequeue until we're below our queue cache limit
+            while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _)) { }
         }
 
         private static string SanitizeQueueName(string queueName)
         {
-            var tmp = queueName;
-            tmp = tmp.ToLowerInvariant();
-            tmp = tmp
-                .Replace('/', '-') // Forward slash
-                .Replace('\\', '-') // Backslash
-                .Replace('#', '-') // Pound sign
-                .Replace('?', '-') // Question mark
-                .Replace('&', '-')
-                .Replace('+', '-')
-                .Replace(':', '-')
-                .Replace('.', '-')
-                .Replace('%', '-');
-            return tmp;
+            // Nothing for now
+            return queueName;
         }
 
+        /// <summary>
+        /// https://redis.io/topics/data-types-intro
+        /// Redis keys are binary safe, this means that you can use any binary
+        /// sequence as a key, from a string like "foo" to the content of a JPEG
+        /// file. The empty string is also a valid key.
+        /// 
+        /// A few other rules about keys:
+        /// Very long keys are not a good idea.For instance a key of 1024 bytes
+        /// is a bad idea not only memory-wise, but also because the lookup of
+        /// the key in the dataset may require several costly key-comparisons.
+        /// Even when the task at hand is to match the existence of a large value,
+        /// hashing it(for example with SHA1) is a better idea, especially from
+        /// the perspective of memory and bandwidth.
+        /// 
+        /// Very short keys are often not a good idea. There is little point in
+        /// writing "u1000flw" as a key if you can instead write
+        /// "user:1000:followers". The latter is more readable and the added
+        /// space is minor compared to the space used by the key object itself
+        /// and the value object. While short keys will obviously consume a bit
+        /// less memory, your job is to find the right balance.
+        /// 
+        /// Try to stick with a schema. For instance "object-type:id" is a good
+        /// idea, as in "user:1000". Dots or dashes are often used for multi-word
+        /// fields, as in "comment:1234:reply.to" or "comment:1234:reply-to".
+        /// 
+        /// The maximum allowed key size is 512 MB.
+        /// </summary>
+        /// <param name="queueName"></param>
         private void ValidateQueueName(string queueName)
         {
-            if (!(queueName.Length >= 3 && queueName.Length <= 63))
+            if (!(queueName.Length >= MINIMUM_KEY_LENGTH && queueName.Length <= MAXIMUM_KEY_LENGTH))
             {
-                // A queue name must be from 3 through 63 characters long.
-                throw new ArgumentException(String.Format("A queue name must be from 3 through 63 characters long, while your queueName length is {0}, queueName is {1}.", queueName.Length, queueName), queueName);
-            }
-
-            if (!Char.IsLetterOrDigit(queueName.First()))
-            {
-                // A queue name must start with a letter or number
-                throw new ArgumentException(String.Format("A queue name must start with a letter or number, while your queueName is {0}.", queueName), queueName);
-            }
-
-            if (!Char.IsLetterOrDigit(queueName.Last()))
-            {
-                // The first and last letters in the queue name must be alphanumeric. The dash (-) character cannot be the first or last character.
-                throw new ArgumentException(String.Format("The last letter in the queue name must be alphanumeric, while your queueName is {0}.", queueName), queueName);
-            }
-
-            if (!queueName.All(c => Char.IsLetterOrDigit(c) || c.Equals('-')))
-            {
-                // A queue name can only contain letters, numbers, and the dash (-) character.
-                throw new ArgumentException(String.Format("A queue name can only contain letters, numbers, and the dash (-) character, while your queueName is {0}.", queueName), queueName);
-            }
-
-            if (queueName.Contains("--"))
-            {
-                // Consecutive dash characters are not permitted in the queue name.
-                throw new ArgumentException(String.Format("Consecutive dash characters are not permitted in the queue name, while your queueName is {0}.", queueName), queueName);
-            }
-
-            if (queueName.Where(Char.IsLetter).Any(c => !Char.IsLower(c)))
-            {
-                // All letters in a queue name must be lowercase.
-                throw new ArgumentException(String.Format("All letters in a queue name must be lowercase, while your queueName is {0}.", queueName), queueName);
+                
+                throw new ArgumentException("A queue name must be from {MINIMUM_KEY_LENGTH} through {MAXIMUM_KEY_LENGTH} characters long, while your queueName length is {queueName.Length}, queueName is {queueName}.", queueName);
             }
         }
     }

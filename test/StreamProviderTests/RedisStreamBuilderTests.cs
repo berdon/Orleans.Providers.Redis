@@ -14,11 +14,12 @@ using Xunit;
 using Orleans.Streaming;
 using Orleans.Configuration;
 using Orleans.Providers.Streams.Redis;
+using Xunit.Categories;
 
 namespace CoreTests
 {
-    [Trait("Category", "BVT")]
-    [Trait("Target", "Orleans.Redis.Streaming")]
+    [Category("BVT")]
+    [Feature("Streaming")]
     public class RedisStreamBuilderTests
     {
         private const string MockStreamProviderName = nameof(MockStreamProviderName);

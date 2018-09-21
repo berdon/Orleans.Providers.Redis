@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <IsPackable>false</IsPackable>
@@ -7,8 +8,8 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">
-    <DefineConstants>TRACE;TEST</DefineConstants>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;CS1998</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,20 +17,26 @@
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertions)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Microsoft_NET_Test_Sdk)" />
     <PackageReference Include="Microsoft.Orleans.Core" Version="$(Microsoft_Orleans_Core)" />
+    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator" Version="$(Microsoft_Orleans_Core)" />
+    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="$(Microsoft_Orleans_Core)">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Server" Version="$(Microsoft_Orleans_Server)" />
     <PackageReference Include="Microsoft.Orleans.TestingHost" Version="$(Microsoft_Orleans_TestingHost)" />
     <PackageReference Include="Moq" Version="$(Moq)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
+    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis)" />
     <PackageReference Include="xunit" Version="$(xunit)" />
+    <PackageReference Include="xunit.categories" Version="$(xunit_categories)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit_runner_visualstudio)" />
     <PackageReference Include="Zuercher.Orleans.Testing.Utils" Version="$(Zuercher_Orleans_Testing_Utils)" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="$(dotnet_xunit)" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Orleans.Redis.Common\Orleans.Redis.Common.csproj" />
     <ProjectReference Include="..\..\src\Orleans.Storage.Redis\Orleans.Persistence.Redis.csproj" />
-    <ProjectReference Include="..\..\src\Orleans.Streaming.Redis\Orleans.Streaming.Redis.csproj" />
+    <ProjectReference Include="..\StorageTests.GrainInterfaces\StorageTests.GrainInterfaces.csproj" />
   </ItemGroup>
 
 </Project>

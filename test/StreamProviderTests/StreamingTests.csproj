@@ -1,14 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <IsPackable>false</IsPackable>
-    <RuntimeFrameworkVersion>2.0.3</RuntimeFrameworkVersion>
-    <Configurations>Debug;Release;Test</Configurations>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">
-    <DefineConstants>TRACE;TEST</DefineConstants>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,15 +16,15 @@
     <PackageReference Include="Moq" Version="$(Moq)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
     <PackageReference Include="xunit" Version="$(xunit)" />
+    <PackageReference Include="xunit.categories" Version="$(xunit_categories)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit_runner_visualstudio)" />
     <PackageReference Include="Zuercher.Orleans.Testing.Utils" Version="$(Zuercher_Orleans_Testing_Utils)" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="$(dotnet_xunit)" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Orleans.Redis.Common\Orleans.Redis.Common.csproj" />
-    <ProjectReference Include="..\..\src\Orleans.Storage.Redis\Orleans.Persistence.Redis.csproj" />
     <ProjectReference Include="..\..\src\Orleans.Streaming.Redis\Orleans.Streaming.Redis.csproj" />
+    <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
 </Project>

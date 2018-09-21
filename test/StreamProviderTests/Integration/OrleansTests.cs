@@ -14,17 +14,22 @@ using StackExchange.Redis;
 using SharedOrleansUtils;
 using Nito.AsyncEx;
 using System.Threading;
+using Xunit.Categories;
+using Shared;
+using Orleans.Redis.Common;
+using System.Collections.Generic;
 
 namespace CoreTests.Integration
 {
-    [Trait("Category", "BVT")]
-    [Trait("Target", "Integration")]
-    [Trait("Target", "Orleans.Redis.Streaming")]
+    [Category("BVT")]
+    [Category("Integration")]
+    [Feature("Streaming")]
     public class OrleansTests
     {
         private const string StreamProviderName = nameof(StreamProviderName);
         private const string StreamStorageName = "PubSubStore";
-        private const int DefaultBlockingTimeoutInMs = 5000;
+        private const int DefaultBlockingTimeoutInMs = 10000;
+
         private static CancellationToken GetDefaultBlockingToken() => new CancellationTokenSource(DefaultBlockingTimeoutInMs).Token;
 
         [Fact]
@@ -45,7 +50,7 @@ namespace CoreTests.Integration
 
         [Theory]
         [InlineData(1, 1)]
-        [InlineData(100, 100)]
+        [InlineData(10, 10)]
         public Task TwoRedisStreamsWithDifferentStreamIdsOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
             var clusterFixture = new StreamingClusterFixture();
@@ -84,14 +89,14 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                Assert.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>());
-                Assert.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>());
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>());
             });
         }
 
         [Theory]
         [InlineData(1, 1)]
-        [InlineData(100, 100)]
+        [InlineData(10, 10)]
         public Task TwoRedisStreamsWithSameStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
             var clusterFixture = new StreamingClusterFixture();
@@ -130,8 +135,8 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                Assert.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                Assert.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}"), items1.Cast<string>());
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}"), items2.Cast<string>());
             });
         }
 
@@ -177,15 +182,77 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                Assert.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                Assert.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}"), items1.Cast<string>());
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}"), items2.Cast<string>());
+            });
+        }
+
+        [Theory]
+        [InlineData(10, 10)]
+        [InlineData(100, 10)]
+        public Task NRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int n, int messageCount)
+        {
+            var clusterFixture = new StreamingClusterFixture();
+
+            return clusterFixture.Dispatch(async () =>
+            {
+                var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, n, messageCount);
+
+                await Task.WhenAll(dataSets.Select(d => d.Awaiter));
+
+                foreach (var set in dataSets)
+                {
+                    var items = await set.Awaiter;
+                    Assert.Equal(messageCount, items.Count);
+                    AssertEx.Equal(new object[messageCount].Select((_, i) => $"test:{set.StreamId}-{set.StreamNamespace} message:{i}"), items.Cast<string>());
+                }
+            });
+        }
+
+        private async Task<List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>> CreateProducerConsumerStreamAwaiter(BaseClusterFixture clusterFixture, int n, int messageCount)
+        {
+            var dataSets = new List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>();
+            for (var i = 0; i < n; i++)
+            {
+                dataSets.Add(await CreateProducerConsumerStreamAwaiter(clusterFixture, messageCount));
+            }
+            return dataSets;
+        }
+
+        private async Task<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)> CreateProducerConsumerStreamAwaiter(BaseClusterFixture clusterFixture, int messageCount)
+        {
+            var streamId = Guid.NewGuid();
+            var streamNamespace = Guid.NewGuid().ToString();
+            var streamSubscriptionAwaiter = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace, messageCount);
+            var publishTask = Task.Factory.StartNew(async () =>
+            {
+                for (var i = 0; i < messageCount; i++)
+                {
+                    await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace, $"test:{streamId}-{streamNamespace} message:{i}");
+                }
+            });
+            return (streamId, streamNamespace, streamSubscriptionAwaiter);
+        }
+
+        [Fact]
+        public Task OnlyOneConnectionMultiplexerIsCreated()
+        {
+            var clusterFixture = new StreamingClusterFixture();
+            return clusterFixture.Dispatch(async () =>
+            {
+                // Make sure some producer/consumers are set up
+                var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, 100, 10);
+                await Task.WhenAll(dataSets.Select(d => d.Awaiter));
+
+                var connectionMultiplexerFactory = (CachedConnectionMultiplexerFactory) clusterFixture.ClusterServices.GetRequiredService<IConnectionMultiplexerFactory>();
+                Assert.Single(connectionMultiplexerFactory.TestHook_ConnectionMultiplexers);
             });
         }
 
         [MockStreamStorage(StreamStorageName)]
         private class StreamingClusterFixture : BaseClusterFixture
         {
-            private const string LocalRedisConnectionString = "127.0.0.1:6379";
+            public const string LocalRedisConnectionString = "127.0.0.1:6379";
 
             protected override void OnConfigure(ISiloHostBuilder siloHostBuilder)
             {
@@ -202,23 +269,8 @@ namespace CoreTests.Integration
             {
                 base.OnConfigureServices(services);
 
-                services.AddSingleton(Moq.Mock.Of<ILogger>());
-                services.TryAddSingleton(sp => sp.GetServiceByName<IGrainStorage>(ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME));
-                services.TryAddTransient(s => ConnectionMultiplexer.Connect(LocalRedisConnectionString).GetDatabase());
-                services.AddSingleton(new OrleansClusterDetails(Guid.NewGuid().ToString(), Guid.NewGuid()));
+                services.AddSingleton(new Moq.Mock<ILogger>() { DefaultValue = Moq.DefaultValue.Mock }.Object);
             }
-        }
-    }
-
-    public class OrleansClusterDetails
-    {
-        public Guid ServiceId { get; set; }
-        public string ClusterId { get; set; }
-
-        public OrleansClusterDetails(string deploymentId, Guid serviceId)
-        {
-            ClusterId = deploymentId;
-            ServiceId = serviceId;
         }
     }
 }

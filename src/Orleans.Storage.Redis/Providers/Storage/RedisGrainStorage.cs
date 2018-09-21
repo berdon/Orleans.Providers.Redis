@@ -42,7 +42,7 @@ namespace Orleans.Storage
         {
             _name = name;
             _options = options;
-            _logger = logger;
+            _logger = logger ?? SilentLogger.Logger;
             _serializationManager = serializationManager;
             _clusterOptions = clusterOptions.Value;
         }

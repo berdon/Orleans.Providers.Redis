@@ -6,7 +6,16 @@ namespace Orleans.Configuration
 {
     public class RedisStreamOptions : RedisOptions
     {
+        /// <summary>
+        /// Timeout period for Redis operations.
+        /// </summary>
         public TimeSpan OperationTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        /// <summary>
+        /// How many messages will be queued up before new messages
+        /// are dropped on the floor. This queue is normally emptied during
+        /// normal stream pulling.
+        /// </summary>
+        public int QueueCacheSize { get; set; } = 1000;
     }
 
     public class RedisStreamOptionsValidator : IConfigurationValidator
