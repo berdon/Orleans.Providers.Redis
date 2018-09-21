@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.Orleans.Core" Version="$(Microsoft_Orleans_Core)" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="$(Microsoft_Orleans_Server)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
-    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis_StrongName)" />
+    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis)" />
   </ItemGroup>
 
   <ItemGroup>

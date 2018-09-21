@@ -16,10 +16,11 @@ namespace Orleans.Providers.Streams.Redis
     {
         private readonly string _providerName;
         private readonly RedisStreamOptions _options;
+        private readonly IConnectionMultiplexerFactory _connectionMultiplexerFactory;
         private readonly ClusterOptions _clusterOptions;
         private readonly ILogger _logger;
         private readonly IRedisDataAdapter _dataAdapter;
-        private readonly HashRingBasedStreamQueueMapper _streamQueueMapper;
+        private readonly IStreamQueueMapper _streamQueueMapper;
         private readonly IQueueAdapterCache _adapterCache;
 
         /// <summary>
@@ -30,24 +31,35 @@ namespace Orleans.Providers.Streams.Redis
         public RedisQueueAdapterFactory(
             string name,
             RedisStreamOptions options,
+            IConnectionMultiplexerFactory connectionMultiplexerFactory,
             HashRingStreamQueueMapperOptions queueMapperOptions,
             SimpleQueueCacheOptions cacheOptions,
             IServiceProvider serviceProvider,
             IOptions<ClusterOptions> clusterOptions,
             IRedisDataAdapter dataAdapter,
             ILogger logger,
-            ISerializationManager serializationManager,
-            IServiceProvider provider)
+            ISerializationManager serializationManager)
         {
+            if (string.IsNullOrEmpty(name)) throw new ArgumentNullException(nameof(name));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            if (connectionMultiplexerFactory == null) throw new ArgumentNullException(nameof(connectionMultiplexerFactory));
+            if (queueMapperOptions == null) throw new ArgumentNullException(nameof(queueMapperOptions));
+            if (cacheOptions == null) throw new ArgumentNullException(nameof(cacheOptions));
+            if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
+            if (clusterOptions == null) throw new ArgumentNullException(nameof(clusterOptions));
+            if (dataAdapter == null) throw new ArgumentNullException(nameof(dataAdapter));
+            if (serializationManager == null) throw new ArgumentNullException(nameof(serializationManager));
+
             _providerName = name;
-            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _options = options;
+            _connectionMultiplexerFactory = connectionMultiplexerFactory;
             _clusterOptions = clusterOptions.Value;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger != null ? logger.ForContext<RedisQueueAdapterFactory>() : SilentLogger.Logger;
             _dataAdapter = dataAdapter;
 
             _streamQueueMapper = new HashRingBasedStreamQueueMapper(queueMapperOptions, _providerName);
 
-            var microsoftLoggerFactory = provider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>();
+            var microsoftLoggerFactory = serviceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>();
             _adapterCache = new SimpleQueueAdapterCache(cacheOptions, _providerName, microsoftLoggerFactory);
         }
 
@@ -61,6 +73,7 @@ namespace Orleans.Providers.Streams.Redis
         {
             var adapter = new RedisQueueAdapter(
                 _options,
+                _connectionMultiplexerFactory,
                 _dataAdapter, 
                 _streamQueueMapper,
                 _logger,

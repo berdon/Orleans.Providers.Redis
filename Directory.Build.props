@@ -12,7 +12,7 @@
   <!-- Versioning properties -->
   <PropertyGroup>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">2.0.4</VersionPrefix>
+    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">2.0.6</VersionPrefix>
   </PropertyGroup>
 
   <!-- For Debug builds generated a date/time dependent version suffix -->
@@ -35,12 +35,18 @@
     <Microsoft_Orleans_Server>2.0.4</Microsoft_Orleans_Server>
     <Microsoft_Orleans_Runtime_Legacy>2.0.4</Microsoft_Orleans_Runtime_Legacy>
     <Microsoft_Orleans_TestingHost>2.0.4</Microsoft_Orleans_TestingHost>
-    <Moq>4.7.10</Moq>
+    <Moq>4.10.0</Moq>
     <Newtonsoft_Json>10.0.3</Newtonsoft_Json>
     <Nito_AsyncEx_Tasks>5.0.0-pre-02</Nito_AsyncEx_Tasks>
-    <Serilog>2.5.0</Serilog>
-    <StackExchange_Redis_StrongName>1.2.6</StackExchange_Redis_StrongName>
+    <Serilog>2.7.1</Serilog>
+    <!--
+      Can't upgrade until the latest Orleans Code Generator is finished.
+      See https://github.com/dotnet/orleans/issues/4956
+          https://github.com/dotnet/orleans/pull/4934
+    -->
+    <StackExchange_Redis>1.2.6</StackExchange_Redis>
     <xunit>2.3.1</xunit>
+    <xunit_categories>2.0.3</xunit_categories>
     <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
     <Zuercher_Orleans_Testing_Utils>1.0.2-dev</Zuercher_Orleans_Testing_Utils>
   </PropertyGroup>

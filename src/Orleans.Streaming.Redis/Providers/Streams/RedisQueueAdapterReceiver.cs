@@ -1,17 +1,19 @@
 ﻿using Orleans.Configuration;
+using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
 using Orleans.Streams;
 using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Orleans.Providers.Streams.Redis
 {
-    class RedisAdapterReceiver : IQueueAdapterReceiver
+    class RedisQueueAdapterReceiver : IQueueAdapterReceiver
     {
-        private RedisDataManager _queue;
+        private IRedisDataManager _queue;
         private long _lastReadMessage;
         private Task _outstandingTask;
         private readonly ILogger _logger;
@@ -19,18 +21,31 @@ namespace Orleans.Providers.Streams.Redis
 
         public QueueId Id { get; }
 
-        public static IQueueAdapterReceiver Create(ILogger logger, QueueId queueId, string serviceId, RedisStreamOptions options, IRedisDataAdapter dataAdapter)
+        internal IRedisDataManager TestHook_Queue
+        {
+            get => _queue;
+            set => _queue = value;
+        }
+
+        public static IQueueAdapterReceiver Create(
+            ILogger logger,
+            QueueId queueId,
+            string serviceId,
+            RedisStreamOptions options,
+            IConnectionMultiplexerFactory connectionMultiplexerFactory,
+            IRedisDataAdapter dataAdapter)
         {
             if (queueId == null) throw new ArgumentNullException(nameof(queueId));
             if (string.IsNullOrEmpty(serviceId)) throw new ArgumentNullException(nameof(serviceId));
             if (options == null) throw new ArgumentNullException(nameof(options));
+            if (connectionMultiplexerFactory == null) throw new ArgumentNullException(nameof(connectionMultiplexerFactory));
             if (dataAdapter == null) throw new ArgumentNullException(nameof(dataAdapter));
 
-            var queue = new RedisDataManager(options, logger, queueId.ToString(), serviceId);
-            return new RedisAdapterReceiver(logger, queueId, queue, dataAdapter);
+            var queue = new RedisDataManager(options, connectionMultiplexerFactory, logger, queueId.ToString(), serviceId);
+            return new RedisQueueAdapterReceiver(logger, queueId, queue, dataAdapter);
         }
 
-        private RedisAdapterReceiver(ILogger logger, QueueId queueId, RedisDataManager queue, IRedisDataAdapter dataAdapter)
+        private RedisQueueAdapterReceiver(ILogger logger, QueueId queueId, RedisDataManager queue, IRedisDataAdapter dataAdapter)
         {
             if (queueId == null) throw new ArgumentNullException(nameof(queueId));
             if (queue == null) throw new ArgumentNullException(nameof(queue));
@@ -39,38 +54,56 @@ namespace Orleans.Providers.Streams.Redis
             Id = queueId;
             _queue = queue ?? throw new ArgumentNullException(nameof(queue));
             _dataAdapter = dataAdapter;
-            _logger = logger.ForContext<RedisAdapterReceiver>();
+            _logger = logger != null ? logger.ForContext<RedisQueueAdapterReceiver>() : SilentLogger.Logger;
         }
 
-        public Task Initialize(TimeSpan timeout)
+        public async Task Initialize(TimeSpan timeout)
         {
-            if (_queue != null) // check in case we already shut it down.
+            using (var cts = new CancellationTokenSource(timeout))
             {
-                return _queue.InitAsync();
-            }
+                if (cts.IsCancellationRequested) throw new TaskCanceledException();
 
-            return Task.CompletedTask;
+                if (_queue != null) // check in case we already shut it down.
+                {
+                    await _queue.InitAsync(cts.Token);
+
+                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+
+                    await _queue.SubscribeAsync(cts.Token);
+
+                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                }
+            }
         }
 
         public async Task Shutdown(TimeSpan timeout)
         {
-            try
+            using (var cts = new CancellationTokenSource(timeout))
             {
-                // Await the last storage operation, so after we shutdown and stop this receiver we don't get async operation completions from pending storage operations.
-                if (_outstandingTask != null)
+                if (cts.IsCancellationRequested) throw new TaskCanceledException();
+
+                try
                 {
-                    await _outstandingTask;
+                    // Await the last storage operation, so after we shutdown and stop this receiver we don't get async operation completions from pending storage operations.
+                    if (_outstandingTask != null)
+                    {
+                        await _outstandingTask;
+                    }
                 }
-            }
-            finally
-            {
-                if (_queue != null)
+                finally
                 {
-                    await _queue.StopAsync();
+                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+
+                    if (_queue != null)
+                    {
+                        await _queue.StopAsync(cts.Token);
+                    }
+
+                    // Remember that we shut down so we never try to read from the queue again.
+                    _queue = null;
                 }
 
-                // Remember that we shut down so we never try to read from the queue again.
-                _queue = null;
+                if (cts.IsCancellationRequested) throw new TaskCanceledException();
             }
         }
 
@@ -105,9 +138,12 @@ namespace Orleans.Providers.Streams.Redis
         public Task MessagesDeliveredAsync(IList<IBatchContainer> messages)
         {
             // No op for now as redis really isn't a persistent queue :/
-            foreach (var m in messages)
+            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
             {
-                _logger.Verbose("{SequenceId} delivered", m.SequenceToken);
+                foreach (var m in messages)
+                {
+                    _logger.Verbose("{SequenceId} delivered", m.SequenceToken);
+                }
             }
 
             return Task.CompletedTask;

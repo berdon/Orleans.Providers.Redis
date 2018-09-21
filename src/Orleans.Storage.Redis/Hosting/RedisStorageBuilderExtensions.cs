@@ -36,6 +36,7 @@ namespace Orleans.Hosting
         {
             configureOptions?.Invoke(services.AddOptions<RedisGrainStorageOptions>(name));
 
+            services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
             services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
             services.AddTransient<IConfigurationValidator>(sp => new RedisGrainStorageOptionsValidator(sp.GetService<IOptionsSnapshot<RedisGrainStorageOptions>>().Get(name), name));
             services.ConfigureNamedOptionForLogging<RedisGrainStorageOptions>(name);
