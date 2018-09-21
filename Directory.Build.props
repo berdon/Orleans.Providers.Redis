@@ -23,6 +23,7 @@
 
   <PropertyGroup>
     <AutoBogus_Moq>1.0.0</AutoBogus_Moq>
+    <Microsoft_Extensions_DependencyInjection>2.1.1</Microsoft_Extensions_DependencyInjection>
     <dotnet_xunit>2.3.1</dotnet_xunit>
     <FluentAssertions>4.19.4</FluentAssertions>
     <Microsoft_NET_Test_Sdk>15.6.0</Microsoft_NET_Test_Sdk>

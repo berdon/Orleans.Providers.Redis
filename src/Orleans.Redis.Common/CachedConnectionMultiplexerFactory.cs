@@ -14,7 +14,7 @@ namespace Orleans.Redis.Common
     {
         public static IConnectionMultiplexerFactory Default = new CachedConnectionMultiplexerFactory();
 
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly Dictionary<string, IConnectionMultiplexer> _connectionMultiplexers = new Dictionary<string, IConnectionMultiplexer>();
         internal Dictionary<string, IConnectionMultiplexer> TestHook_ConnectionMultiplexers => _connectionMultiplexers;
 
@@ -24,15 +24,20 @@ namespace Orleans.Redis.Common
         {
             if (!_connectionMultiplexers.TryGetValue(configuration, out var connectionMultiplexer))
             {
-                await _lock.WaitAsync();
-
-                if (!_connectionMultiplexers.TryGetValue(configuration, out connectionMultiplexer))
+                try
                 {
-                    connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(configuration);
-                    _connectionMultiplexers.Add(configuration, connectionMultiplexer);
-                }
+                    await _lock.WaitAsync();
 
-                _lock.Release();
+                    if (!_connectionMultiplexers.TryGetValue(configuration, out connectionMultiplexer))
+                    {
+                        connectionMultiplexer = await ConnectionMultiplexer.ConnectAsync(configuration);
+                        _connectionMultiplexers.Add(configuration, connectionMultiplexer);
+                    }
+                }
+                finally
+                {
+                    _lock.Release();
+                }
             }
 
             return connectionMultiplexer;

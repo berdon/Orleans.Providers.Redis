@@ -18,7 +18,7 @@ namespace Orleans.Streaming
                 .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(RedisQueueAdapterFactory).Assembly))
                 .ConfigureServices(services =>
                 {
-                services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
+                    services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
                     services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
                     services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
                     services.AddSingleton<IRedisDataAdapter, RedisDataAdapter>();
