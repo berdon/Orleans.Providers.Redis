@@ -28,9 +28,9 @@ namespace CoreTests.Integration
     {
         private const string StreamProviderName = nameof(StreamProviderName);
         private const string StreamStorageName = "PubSubStore";
-        private const int DefaultBlockingTimeoutInMs = 10000;
+        private static readonly TimeSpan DefaultBlockingTimeout = TimeSpan.FromMilliseconds(10000);
 
-        private static CancellationToken GetDefaultBlockingToken() => new CancellationTokenSource(DefaultBlockingTimeoutInMs).Token;
+        private static CancellationTokenSource GetTokenSource(TimeSpan? time = null) => new CancellationTokenSource(time ?? DefaultBlockingTimeout);
 
         [Fact]
         public Task RedisStreamCanSendAndReceiveItem()
@@ -44,7 +44,10 @@ namespace CoreTests.Integration
 
                 var streamSubscriptionAwaiter = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace, 1);
                 await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace, "test");
-                await streamSubscriptionAwaiter.WaitAsync(GetDefaultBlockingToken());
+                using (var cts = GetTokenSource())
+                {
+                    await streamSubscriptionAwaiter.WaitAsync(cts.Token);
+                }
             });
         }
 
@@ -80,8 +83,13 @@ namespace CoreTests.Integration
                     }
                 });
 
-                var items1 = await streamSubscriptionAwaiter1.WaitAsync(GetDefaultBlockingToken());
-                var items2 = await streamSubscriptionAwaiter2.WaitAsync(GetDefaultBlockingToken());
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource())
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
 
                 // Wait a little longer just in case something else is published (which would be bad)
                 await Task.Delay(100);
@@ -126,8 +134,13 @@ namespace CoreTests.Integration
                     }
                 });
 
-                var items1 = await streamSubscriptionAwaiter1.WaitAsync(GetDefaultBlockingToken());
-                var items2 = await streamSubscriptionAwaiter2.WaitAsync(GetDefaultBlockingToken());
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource())
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
 
                 // Wait a little longer just in case something else is published (which would be bad)
                 await Task.Delay(100);
@@ -173,8 +186,13 @@ namespace CoreTests.Integration
                     }
                 });
 
-                var items1 = await streamSubscriptionAwaiter1.WaitAsync(GetDefaultBlockingToken());
-                var items2 = await streamSubscriptionAwaiter2.WaitAsync(GetDefaultBlockingToken());
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource(TimeSpan.FromSeconds(messageCount1)))
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
 
                 // Wait a little longer just in case something else is published (which would be bad)
                 await Task.Delay(100);
