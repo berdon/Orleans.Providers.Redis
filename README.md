@@ -1,4 +1,6 @@
 # Orleans.Providers.Redis
+[![Build Status](https://travis-ci.com/berdon/Orleans.Providers.Redis.svg?branch=master)](https://travis-ci.com/berdon/Orleans.Providers.Redis)
+
 Redis stream and storage providers for Microsoft Orleans.
 
 # Installation
