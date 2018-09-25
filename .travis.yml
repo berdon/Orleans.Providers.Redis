@@ -1,0 +1,12 @@
+language: csharp
+mono: none
+dotnet: 2.1.400
+
+install:
+- dotnet restore
+
+script:
+ - dotnet build
+ - dotnet test test/CoreTests/CoreTests.csproj
+ - dotnet test test/StorageTests/StorageTests.csproj
+ - dotnet test test/StreamProviderTests/StreamProviderTests.csproj
