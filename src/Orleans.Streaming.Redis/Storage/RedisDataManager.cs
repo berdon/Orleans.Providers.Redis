@@ -32,7 +32,6 @@ namespace Orleans.Streaming.Redis.Storage
 
         private static readonly IEnumerable<RedisValue> EmptyRedisValueEnumerable = Array.Empty<RedisValue>();
 
-        private bool _initialized = false;
         private IConnectionMultiplexer _connectionMultiplexer;
 
         internal ConcurrentQueue<RedisValue> TestHook_Queue => _queue;
@@ -59,11 +58,11 @@ namespace Orleans.Streaming.Redis.Storage
 
             try
             {
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
                 _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
 
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
-
-                _initialized = true;
             }
             catch (Exception exc)
             {
@@ -81,6 +80,8 @@ namespace Orleans.Streaming.Redis.Storage
 
             try
             {
+                if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
                 var subscription = _connectionMultiplexer.GetSubscriber();
                 await subscription.SubscribeAsync(_redisChannel, OnChannelReceivedData);
 
@@ -96,24 +97,18 @@ namespace Orleans.Streaming.Redis.Storage
             }
         }
 
-        public async Task StopAsync(CancellationToken ct = default)
+        public async Task UnsubscribeAsync(CancellationToken ct = default)
         {
             var startTime = DateTimeOffset.UtcNow;
-
-            if (!_initialized) throw new InvalidOperationException("Cannot call StopAsync before InitAsync");
 
             try
             {
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
 
                 var subscription = _connectionMultiplexer.GetSubscriber();
-                await subscription.UnsubscribeAllAsync();
+                await subscription.UnsubscribeAsync(_redisChannel, OnChannelReceivedData);
 
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
-
-                _connectionMultiplexer.Dispose();
-
-                _initialized = false;
             }
             catch (Exception exc)
             {
@@ -199,7 +194,11 @@ namespace Orleans.Streaming.Redis.Storage
         private void OnChannelReceivedData(RedisChannel channel, RedisValue value)
         {
             _queue.Enqueue(value);
-            _logger.Debug("{Count}", _queue.Count);
+
+            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
+            {
+                _logger.Verbose("{Queue} has {Count} messages", QueueName, _queue.Count);
+            }
 
             // Dequeue until we're below our queue cache limit
             while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _)) { }

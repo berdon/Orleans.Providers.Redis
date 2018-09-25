@@ -83,38 +83,38 @@ namespace StreamingTests
         }
 
         [Fact]
-        public async Task StopAsyncRespectsCancellationTokenTimeout()
+        public async Task UnsubscribeAsyncRespectsCancellationTokenTimeout()
         {
             var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
 
             await rdm.InitAsync();
 
             var ct = new CancellationToken(true);
-            await AssertEx.ThrowsAnyAsync<AggregateException>(() => rdm.StopAsync(ct), e => e.InnerException is TaskCanceledException);
+            await AssertEx.ThrowsAnyAsync<AggregateException>(() => rdm.UnsubscribeAsync(ct), e => e.InnerException is TaskCanceledException);
         }
 
         [Fact]
-        public async Task StopAsyncWithoutInitAsyncThrowsInvalidOperationException()
+        public async Task UnsubscribeAsyncUnsubscribesFromRedisChannel()
         {
             var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
 
-            await AssertEx.ThrowsAnyAsync<InvalidOperationException>(() => rdm.StopAsync());
-        }
-
-        [Fact]
-        public async Task StopAsyncUnsubscribesFromRedisChannel()
-        {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
-
+            Action<RedisChannel, RedisValue> subscribedHandler = null;
             subscriber
-                .Setup(x => x.UnsubscribeAllAsync(It.IsAny<CommandFlags>()))
+                .Setup(x => x.SubscribeAsync(ExpectedChannelName, It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()))
+                .Callback((RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags commandFlags) =>
+                {
+                    subscribedHandler = handler;
+                })
+                .Returns(Task.CompletedTask);
+            subscriber
+                .Setup(x => x.UnsubscribeAsync(ExpectedChannelName, subscribedHandler, It.IsAny<CommandFlags>()))
                 .Returns(Task.CompletedTask);
 
             await rdm.InitAsync();
             await rdm.SubscribeAsync();
-            await rdm.StopAsync();
+            await rdm.UnsubscribeAsync();
 
-            subscriber.Verify(x => x.UnsubscribeAllAsync(It.IsAny<CommandFlags>()), Times.Once);
+            subscriber.Verify(x => x.UnsubscribeAsync(ExpectedChannelName, subscribedHandler, It.IsAny<CommandFlags>()), Times.Once);
         }
 
         [Fact]
@@ -151,7 +151,7 @@ namespace StreamingTests
 
             AssertEx.Equal(expectedMessages, await rdm.GetQueueMessagesAsync(100));
 
-            await rdm.StopAsync();
+            await rdm.UnsubscribeAsync();
         }
 
         [Fact]
@@ -178,7 +178,7 @@ namespace StreamingTests
 
             AssertEx.Equal(expectedPublishedMessages, actualPublishedMessages);
 
-            await rdm.StopAsync();
+            await rdm.UnsubscribeAsync();
         }
 
         /// <summary>
@@ -232,9 +232,21 @@ namespace StreamingTests
                 .Returns(Task.CompletedTask);
 
             await rdm.InitAsync();
-            await rdm.StopAsync();
 
             subscriber.Verify(x => x.SubscribeAsync(ExpectedChannelName, It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()), Times.Never());
+        }
+
+        [Fact]
+        public async Task UnsubscribeAsyncDoesntDisposeConnectionMultiplexer()
+        {
+            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            connectionMultiplexer.Setup(x => x.Dispose());
+
+            await rdm.InitAsync();
+            await rdm.SubscribeAsync();
+            await rdm.UnsubscribeAsync();
+
+            connectionMultiplexer.Verify(x => x.Dispose(), Times.Never());
         }
 
         private (Mock<IConnectionMultiplexer> MockConnectionMultiplexer, Mock<ISubscriber> MockSubscriber, RedisDataManager RedisDataManager) MockRedisDataManager(Mock<IConnectionMultiplexerFactory> connectionMultiplexerFactory = null, RedisStreamOptions redisStreamOptions = null)

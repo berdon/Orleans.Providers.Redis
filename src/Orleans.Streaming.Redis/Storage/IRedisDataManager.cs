@@ -13,7 +13,7 @@ namespace Orleans.Streaming.Redis.Storage
         Task DeleteQueueMessage(RedisValue value);
         Task<IEnumerable<RedisValue>> GetQueueMessagesAsync(int count);
         Task InitAsync(CancellationToken ct = default);
-        Task StopAsync(CancellationToken ct = default);
         Task SubscribeAsync(CancellationToken ct = default);
+        Task UnsubscribeAsync(CancellationToken ct = default);
     }
 }
