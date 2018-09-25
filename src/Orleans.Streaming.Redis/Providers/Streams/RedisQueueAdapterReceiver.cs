@@ -96,7 +96,7 @@ namespace Orleans.Providers.Streams.Redis
 
                     if (_queue != null)
                     {
-                        await _queue.StopAsync(cts.Token);
+                        await _queue.UnsubscribeAsync(cts.Token);
                     }
 
                     // Remember that we shut down so we never try to read from the queue again.

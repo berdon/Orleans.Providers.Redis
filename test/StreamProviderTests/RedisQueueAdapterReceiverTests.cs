@@ -63,7 +63,7 @@ namespace StreamingTests
             rqar.TestHook_Queue = rdm.Object;
 
             rdm
-                .Setup(x => x.StopAsync(It.IsAny<CancellationToken>()))
+                .Setup(x => x.UnsubscribeAsync(It.IsAny<CancellationToken>()))
                 .Callback((CancellationToken ct) => Thread.Sleep(1))
                 .Returns(Task.CompletedTask);
 

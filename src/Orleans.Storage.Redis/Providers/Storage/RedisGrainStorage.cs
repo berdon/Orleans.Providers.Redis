@@ -35,26 +35,27 @@ namespace Orleans.Storage
             NullValueHandling = NullValueHandling.Ignore
         };
 
-        private ConnectionMultiplexer _redisConnection;
-        private IDatabase _redisClient => _redisConnection.GetDatabase();
+        private IConnectionMultiplexerFactory _connectionMultiplexerFactory;
+        private IConnectionMultiplexer _connectionMultiplexer;
+        private IDatabase _redisClient => _connectionMultiplexer.GetDatabase();
 
-        public RedisGrainStorage(string name, RedisGrainStorageOptions options, ILogger logger, IOptions<ClusterOptions> clusterOptions, ISerializationManager serializationManager)
+        public RedisGrainStorage(string name, RedisGrainStorageOptions options, ILogger logger, IOptions<ClusterOptions> clusterOptions, ISerializationManager serializationManager, IConnectionMultiplexerFactory connectionMultiplexerFactory)
         {
             _name = name;
             _options = options;
             _logger = logger ?? SilentLogger.Logger;
             _serializationManager = serializationManager;
             _clusterOptions = clusterOptions.Value;
+            _connectionMultiplexerFactory = connectionMultiplexerFactory;
         }
 
         public async Task Init(CancellationToken ct)
         {
-            _redisConnection = await ConnectionMultiplexer.ConnectAsync(_options.ConnectionString);
+            _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
         }
 
         public Task Close(CancellationToken ct)
         {
-            _redisConnection.Dispose();
             return Task.CompletedTask;
         }
 
