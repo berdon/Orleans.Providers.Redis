@@ -12,4 +12,4 @@ script:
   - dotnet build
   - dotnet test test/CoreTests/CoreTests.csproj
   - dotnet test test/StorageTests/StorageTests.csproj
-  - dotnet test test/StreamProviderTests/StreamProviderTests.csproj
+  - dotnet test test/StreamProviderTests/StreamingTests.csproj
