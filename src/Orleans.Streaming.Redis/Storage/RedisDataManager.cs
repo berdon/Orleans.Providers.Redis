@@ -201,7 +201,16 @@ namespace Orleans.Streaming.Redis.Storage
             }
 
             // Dequeue until we're below our queue cache limit
-            while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _)) { }
+            int droppedCount = 0;
+            while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _))
+            {
+                droppedCount++;
+            }
+
+            if (droppedCount > 0)
+            {
+                _logger.Warning("Dropped {Count} messages on the floor due to overflowing cache size", droppedCount);
+            }
         }
 
         private static string SanitizeQueueName(string queueName)
