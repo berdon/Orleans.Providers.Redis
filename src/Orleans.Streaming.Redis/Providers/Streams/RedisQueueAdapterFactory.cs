@@ -9,6 +9,7 @@ using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Threading.Tasks;
+using Orleans.Runtime;
 
 namespace Orleans.Providers.Streams.Redis
 {
@@ -66,7 +67,7 @@ namespace Orleans.Providers.Streams.Redis
         public virtual void Init()
         {
             StreamFailureHandlerFactory = StreamFailureHandlerFactory ??
-                ((qid) => Task.FromResult<IStreamFailureHandler>(new NoOpStreamDeliveryFailureHandler()));
+                ((qid) => Task.FromResult<IStreamFailureHandler>(new LoggingStreamDeliveryFailureHandler(_logger)));
         }
 
         public Task<IQueueAdapter> CreateAdapter()
@@ -104,6 +105,30 @@ namespace Orleans.Providers.Streams.Redis
             factory.Init();
 
             return factory;
+        }
+    }
+
+    internal class LoggingStreamDeliveryFailureHandler : IStreamFailureHandler
+    {
+        public bool ShouldFaultSubsriptionOnError => false;
+
+        private readonly ILogger _logger;
+
+        public LoggingStreamDeliveryFailureHandler(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public Task OnDeliveryFailure(GuidId subscriptionId, string streamProviderName, IStreamIdentity streamIdentity, StreamSequenceToken sequenceToken)
+        {
+            _logger.Error("Failed to deliver message to {ProviderName}://{Identity}/{SubscriptionId}#{SequenceId}", streamProviderName, streamIdentity, subscriptionId, sequenceToken);
+            return Task.CompletedTask;
+        }
+
+        public Task OnSubscriptionFailure(GuidId subscriptionId, string streamProviderName, IStreamIdentity streamIdentity, StreamSequenceToken sequenceToken)
+        {
+            _logger.Error("Failed to subscribe to {ProviderName}://{Identity}/{SubscriptionId}#{SequenceId}", streamProviderName, streamIdentity, subscriptionId, sequenceToken);
+            return Task.CompletedTask;
         }
     }
 }
