@@ -61,17 +61,17 @@ namespace Orleans.Providers.Streams.Redis
         {
             using (var cts = new CancellationTokenSource(timeout))
             {
-                if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                cts.Token.ThrowIfCancellationRequested();
 
                 if (_queue != null) // check in case we already shut it down.
                 {
                     await _queue.InitAsync(cts.Token);
 
-                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                    cts.Token.ThrowIfCancellationRequested();
 
                     await _queue.SubscribeAsync(cts.Token);
 
-                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                    cts.Token.ThrowIfCancellationRequested();
                 }
             }
         }
@@ -80,7 +80,7 @@ namespace Orleans.Providers.Streams.Redis
         {
             using (var cts = new CancellationTokenSource(timeout))
             {
-                if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                cts.Token.ThrowIfCancellationRequested();
 
                 try
                 {
@@ -92,7 +92,7 @@ namespace Orleans.Providers.Streams.Redis
                 }
                 finally
                 {
-                    if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                    cts.Token.ThrowIfCancellationRequested();
 
                     if (_queue != null)
                     {
@@ -103,7 +103,7 @@ namespace Orleans.Providers.Streams.Redis
                     _queue = null;
                 }
 
-                if (cts.IsCancellationRequested) throw new TaskCanceledException();
+                cts.Token.ThrowIfCancellationRequested();
             }
         }
 

@@ -39,10 +39,10 @@ namespace StreamingTests
 
             rdm
                 .Setup(x => x.InitAsync(It.IsAny<CancellationToken>()))
-                .Callback((CancellationToken ct) => Thread.Sleep(1))
+                .Callback((CancellationToken ct) => Thread.Sleep(100))
                 .Returns(Task.CompletedTask);
 
-            await AssertEx.ThrowsAnyAsync<TaskCanceledException>(() => rqar.Initialize(TimeSpan.FromMilliseconds(0)));
+            await AssertEx.ThrowsAnyAsync<OperationCanceledException>(() => rqar.Initialize(TimeSpan.FromMilliseconds(0)));
         }
 
         [Fact]
@@ -64,10 +64,10 @@ namespace StreamingTests
 
             rdm
                 .Setup(x => x.UnsubscribeAsync(It.IsAny<CancellationToken>()))
-                .Callback((CancellationToken ct) => Thread.Sleep(1))
+                .Callback((CancellationToken ct) => Thread.Sleep(100))
                 .Returns(Task.CompletedTask);
 
-            await AssertEx.ThrowsAnyAsync<TaskCanceledException>(() => rqar.Shutdown(TimeSpan.FromMilliseconds(0)));
+            await AssertEx.ThrowsAnyAsync<OperationCanceledException>(() => rqar.Shutdown(TimeSpan.FromMilliseconds(0)));
         }
 
         [Fact(Skip = "Incomplete")]
