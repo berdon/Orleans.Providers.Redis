@@ -1,0 +1,86 @@
+jobs:
+- job: Linux
+  pool:
+    vmImage: 'Ubuntu 16.04'
+
+  steps:
+  - script: dotnet restore
+    displayName: 'Restore dependencies'
+
+  - script: dotnet build
+    displayName: 'Build'
+
+  - script: docker run -d --name test-redis --rm -p 6379:6379 redis
+    displayName: 'Start Redis docker container for tests'
+
+  - script: |
+      dotnet test test/CoreTests --logger trx
+      dotnet test test/StorageTests --logger trx
+      dotnet test test/StreamProviderTests --logger trx
+    displayName: 'Run automated tests'
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+
+  - script: docker container kill test-redis
+    displayName: 'Cleanup Redis docker container'
+
+- job: Windows
+  pool:
+    vmImage: 'vs2017-win2016'
+
+  steps:
+  - script: dotnet restore
+    displayName: 'Restore dependencies'
+
+  - script: dotnet build
+    displayName: 'Build'
+
+  - script: |
+      choco install -y redis-64
+      start "redis" redis-server
+    displayName: 'Install and run Redis for tests'
+  - script: |
+      dotnet test test/CoreTests --logger trx
+      dotnet test test/StorageTests --logger trx
+      dotnet test test/StreamProviderTests --logger trx
+    displayName: 'Run automated tests'
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+
+  - script: |
+      taskkill /IM redis-server.exe
+      choco uninstall redis-64
+    displayName: 'Cleanup Redis'
+- job: macOS
+  pool:
+    vmImage: 'macOS-10.13'
+
+  steps:
+  - script: dotnet restore
+    displayName: 'Restore dependencies'
+
+  - script: dotnet build
+    displayName: 'Build'
+
+  - script: |
+      brew install redis
+      brew services start redis
+    displayName: 'Install and run Redis for tests'
+  - script: |
+      dotnet test test/CoreTests --logger trx
+      dotnet test test/StorageTests --logger trx
+      dotnet test test/StreamProviderTests --logger trx
+    displayName: 'Run automated tests'
+  - task: PublishTestResults@2
+    inputs:
+      testRunner: VSTest
+      testResultsFiles: '**/*.trx'
+
+  - script: |
+      brew services stop redis
+      brew uninstall redis
+    displayName: 'Cleanup Redis'
