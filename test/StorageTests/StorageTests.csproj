@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RuntimeFrameworkVersion>2.0.3</RuntimeFrameworkVersion>
     <Configurations>Debug;Release;Test</Configurations>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
@@ -18,7 +17,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Microsoft_NET_Test_Sdk)" />
     <PackageReference Include="Microsoft.Orleans.Core" Version="$(Microsoft_Orleans_Core)" />
     <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator" Version="$(Microsoft_Orleans_Core)" />
-    <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator.Build" Version="$(Microsoft_Orleans_Core)">
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="$(Microsoft_Orleans_Core)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
@@ -26,7 +25,7 @@
     <PackageReference Include="Microsoft.Orleans.TestingHost" Version="$(Microsoft_Orleans_TestingHost)" />
     <PackageReference Include="Moq" Version="$(Moq)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
-    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis)" />
+    <PackageReference Include="StackExchange.Redis" Version="$(StackExchange_Redis)" />
     <PackageReference Include="xunit" Version="$(xunit)" />
     <PackageReference Include="xunit.categories" Version="$(xunit_categories)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit_runner_visualstudio)" />

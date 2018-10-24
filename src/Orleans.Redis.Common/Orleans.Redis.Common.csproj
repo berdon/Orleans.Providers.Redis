@@ -23,6 +23,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Core" Version="$(Microsoft_Orleans_Core)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
-    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis)" />
+    <PackageReference Include="StackExchange.Redis" Version="$(StackExchange_Redis)" />
   </ItemGroup>
 </Project>
