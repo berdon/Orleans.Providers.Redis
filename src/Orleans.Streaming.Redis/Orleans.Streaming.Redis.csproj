@@ -33,7 +33,7 @@
     <PackageReference Include="Microsoft.Orleans.Runtime.Legacy" Version="$(Microsoft_Orleans_Runtime_Legacy)" />
     <PackageReference Include="Nito.AsyncEx.Tasks" Version="$(Nito_AsyncEx_Tasks)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
-    <PackageReference Include="StackExchange.Redis.StrongName" Version="$(StackExchange_Redis)" />
+    <PackageReference Include="StackExchange.Redis" Version="$(StackExchange_Redis)" />
   </ItemGroup>
 
   <ItemGroup>
