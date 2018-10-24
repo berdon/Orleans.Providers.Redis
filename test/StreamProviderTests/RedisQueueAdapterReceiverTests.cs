@@ -3,6 +3,7 @@ using Orleans.Providers.Streams.Redis;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
 using Orleans.Streams;
+using Serilog;
 using Shared;
 using Shared.Mocking;
 using StackExchange.Redis;
@@ -23,11 +24,12 @@ namespace StreamingTests
         [Fact]
         public async Task InitializeRespectsTimeout()
         {
+            var logger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
             var dataAdapter = new Mock<IRedisDataAdapter> { DefaultValue = DefaultValue.Mock };
             var queueId = QueueId.GetQueueId(TestConstants.ValidQueueName, 0, 0);
 
             var rqar = (RedisQueueAdapterReceiver)RedisQueueAdapterReceiver.Create(
-                null,
+                logger.Object,
                 queueId,
                 TestConstants.ValidServiceId,
                 TestConstants.ValidRedisStreamOptions,
@@ -48,11 +50,12 @@ namespace StreamingTests
         [Fact]
         public async Task ShutdownRespectsTimeout()
         {
+            var logger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
             var dataAdapter = new Mock<IRedisDataAdapter> { DefaultValue = DefaultValue.Mock };
             var queueId = QueueId.GetQueueId(TestConstants.ValidQueueName, 0, 0);
 
             var rqar = (RedisQueueAdapterReceiver) RedisQueueAdapterReceiver.Create(
-                null,
+                logger.Object,
                 queueId,
                 TestConstants.ValidServiceId,
                 TestConstants.ValidRedisStreamOptions,

@@ -54,7 +54,7 @@ namespace Orleans.Providers.Streams.Redis
             Id = queueId;
             _queue = queue ?? throw new ArgumentNullException(nameof(queue));
             _dataAdapter = dataAdapter;
-            _logger = logger != null ? logger.ForContext<RedisQueueAdapterReceiver>() : SilentLogger.Logger;
+            _logger = logger.ForContext<RedisQueueAdapterReceiver>();
         }
 
         public async Task Initialize(TimeSpan timeout)

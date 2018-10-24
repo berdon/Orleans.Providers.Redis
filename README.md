@@ -1,12 +1,23 @@
 # Orleans.Providers.Redis
-[![Build Status](https://travis-ci.com/berdon/Orleans.Providers.Redis.svg?branch=master)](https://travis-ci.com/berdon/Orleans.Providers.Redis)
+[![Build Status](https://img.shields.io/vso/build/berdon/Zuercher.Orleans.Providers.Redis/1.svg)](https://dev.azure.com/berdon/Zuercher.Orleans.Providers.Redis/_build?definitionId=1)
 
 Redis stream and storage providers for Microsoft Orleans.
 
-# Installation
-TODO *Add automated build/deployment to nuget*
+| Library  | Version |
+| ------------- | ------------- |
+| [Zuercher.Orleans.Persistence.Redis](https://www.nuget.org/packages/Zuercher.Orleans.Persistence.Redis/)  | [![NugGetVersion](https://img.shields.io/nuget/v/Zuercher.Orleans.Persistence.Redis.svg)](https://www.nuget.org/packages/Zuercher.Orleans.Persistence.Redis/) |
+| [Zuercher.Orleans.Streaming.Redis](https://www.nuget.org/packages/Zuercher.Orleans.Streaming.Redis/) | [![NugGetVersion](https://img.shields.io/nuget/v/Zuercher.Orleans.Streaming.Redis.svg)](https://www.nuget.org/packages/Zuercher.Orleans.Streaming.Redis/) |
 
-For now, you'll need to build locally.
+
+# Installation
+
+```bash
+# For redis storage
+dotnet add package Zuercher.Orleans.Persistence.Redis
+
+# For redis streams
+dotnet add package Zuercher.Orleans.Streaming.Redis
+```
 
 # Usage
 ```C#

@@ -50,7 +50,7 @@ namespace Orleans.Providers.Streams.Redis
             Name = providerName;
             _streamQueueMapper = streamQueueMapper;
             _dataAdapter = dataAdapter;
-            _logger = (logger ?? SilentLogger.Logger).ForContext<RedisQueueAdapter>();
+            _logger = logger.ForContext<RedisQueueAdapter>();
         }
 
         public IQueueAdapterReceiver CreateReceiver(QueueId queueId)

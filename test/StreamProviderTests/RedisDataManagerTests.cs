@@ -2,6 +2,7 @@
 using Orleans.Configuration;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
+using Serilog;
 using Shared;
 using Shared.Mocking;
 using StackExchange.Redis;
@@ -253,6 +254,7 @@ namespace StreamingTests
         {
             var mockConnectionMultiplexer = new Mock <IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
+            var mockLogger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
             mockConnectionMultiplexer
                 .Setup(x => x.GetSubscriber(It.IsAny<object>()))
                 .Returns(mockSubscriber.Object);
@@ -260,7 +262,7 @@ namespace StreamingTests
             var rdm = new RedisDataManager(
                 redisStreamOptions ?? TestConstants.ValidRedisStreamOptions,
                 connectionMultiplexerFactory?.Object ?? MockConnectionMultiplexerFactory.Returns(mockConnectionMultiplexer.Object),
-                null,
+                mockLogger.Object,
                 TestConstants.ValidQueueName,
                 TestConstants.ValidServiceId);
 
