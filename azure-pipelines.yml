@@ -13,15 +13,15 @@ jobs:
   - script: docker run -d --name test-redis --rm -p 6379:6379 redis
     displayName: 'Start Redis docker container for tests'
 
-  - script: |
-      dotnet test test/CoreTests --logger trx
-      dotnet test test/StorageTests --logger trx
-      dotnet test test/StreamProviderTests --logger trx
+  - script: dotnet test --logger trx
     displayName: 'Run automated tests'
+    continueOnError: true
+
   - task: PublishTestResults@2
     inputs:
       testRunner: VSTest
       testResultsFiles: '**/*.trx'
+      failOnStandardError: 'true'
 
   - script: docker container kill test-redis
     displayName: 'Cleanup Redis docker container'
@@ -41,15 +41,16 @@ jobs:
       choco install -y redis-64
       start "redis" redis-server
     displayName: 'Install and run Redis for tests'
-  - script: |
-      dotnet test test/CoreTests --logger trx
-      dotnet test test/StorageTests --logger trx
-      dotnet test test/StreamProviderTests --logger trx
+
+  - script: dotnet test --logger trx
     displayName: 'Run automated tests'
+    continueOnError: true
+
   - task: PublishTestResults@2
     inputs:
       testRunner: VSTest
       testResultsFiles: '**/*.trx'
+      failOnStandardError: 'true'
 
   - script: |
       taskkill /IM redis-server.exe
@@ -70,15 +71,16 @@ jobs:
       brew install redis
       brew services start redis
     displayName: 'Install and run Redis for tests'
-  - script: |
-      dotnet test test/CoreTests --logger trx
-      dotnet test test/StorageTests --logger trx
-      dotnet test test/StreamProviderTests --logger trx
+
+  - script: dotnet test --logger trx
     displayName: 'Run automated tests'
+    continueOnError: true
+
   - task: PublishTestResults@2
     inputs:
       testRunner: VSTest
       testResultsFiles: '**/*.trx'
+      failOnStandardError: 'true'
 
   - script: |
       brew services stop redis

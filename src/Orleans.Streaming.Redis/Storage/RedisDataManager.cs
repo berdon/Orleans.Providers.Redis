@@ -36,14 +36,14 @@ namespace Orleans.Streaming.Redis.Storage
 
         internal ConcurrentQueue<RedisValue> TestHook_Queue => _queue;
 
-        private RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName)
+        private RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger logger, string queueName)
         {
             queueName = SanitizeQueueName(queueName);
             ValidateQueueName(queueName);
 
             _options = options;
             _connectionMultiplexerFactory = connectionMultiplexerFactory;
-            _logger = (loggerFactory ?? SilentLogger.Logger).ForContext<RedisDataManager>();
+            _logger = logger.ForContext<RedisDataManager>();
             QueueName = queueName;
 
             _redisChannel = new RedisChannel(QueueName, RedisChannel.PatternMode.Literal);

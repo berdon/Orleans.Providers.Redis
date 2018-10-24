@@ -55,7 +55,7 @@ namespace Orleans.Providers.Streams.Redis
             _options = options;
             _connectionMultiplexerFactory = connectionMultiplexerFactory;
             _clusterOptions = clusterOptions.Value;
-            _logger = logger != null ? logger.ForContext<RedisQueueAdapterFactory>() : SilentLogger.Logger;
+            _logger = logger.ForContext<RedisQueueAdapterFactory>();
             _dataAdapter = dataAdapter;
 
             _streamQueueMapper = new HashRingBasedStreamQueueMapper(queueMapperOptions, _providerName);

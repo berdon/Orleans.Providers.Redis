@@ -18,6 +18,7 @@ namespace Orleans.Streaming
                 .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(RedisQueueAdapterFactory).Assembly))
                 .ConfigureServices(services =>
                 {
+                    services.TryAddSingleton(SilentLogger.Logger);
                     services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
                     services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
                     services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
@@ -58,6 +59,7 @@ namespace Orleans.Streaming
             this.clientBuilder.ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(RedisQueueAdapterFactory).Assembly))
                  .ConfigureServices(services =>
                  {
+                     services.TryAddSingleton(SilentLogger.Logger);
                      services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
                      services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
                      services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();

@@ -5,6 +5,7 @@ using Orleans.Providers.Streams.Common;
 using Orleans.Providers.Streams.Redis;
 using Orleans.Redis.Common;
 using Orleans.Streams;
+using Serilog;
 using Shared;
 using Shared.Mocking;
 using StackExchange.Redis;
@@ -58,7 +59,7 @@ namespace StreamingTests
         [Fact]
         public async Task PassingNonNullTokenThrownsArgumentException()
         {
-            var rqa = new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, ValidServiceId, ValidProviderName);
+            var rqa = new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), MockLogger(), ValidServiceId, ValidProviderName);
 
             await AssertEx.ThrowsAnyAsync<ArgumentException>(
                 () => rqa.QueueMessageBatchAsync(ValidStreamGuid, ValidStreamNamespace, new[] { "Something" }, new EventSequenceTokenV2(0), null),
@@ -68,6 +69,7 @@ namespace StreamingTests
         [Fact]
         public async Task QueueMessageBatchAsyncWithSingleEventPublishesToRedisChannel()
         {
+            var logger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
             var mockConnectionMultiplexer = new Mock<IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
             mockConnectionMultiplexer.Setup(x => x.GetSubscriber(It.IsAny<object>())).Returns(mockSubscriber.Object);
@@ -93,7 +95,9 @@ namespace StreamingTests
                 MockConnectionMultiplexerFactory.Returns(mockConnectionMultiplexer.Object),
                 mockRedisDataAdapter.Object,
                 mockQueueStreamMapper.Object,
-                null, ValidServiceId, ValidProviderName);
+                logger.Object,
+                ValidServiceId,
+                ValidProviderName);
 
             var expectedMessages = new List<RedisValue>();
             for (var i = 0; i < 100; i++)
@@ -109,6 +113,7 @@ namespace StreamingTests
         [Fact]
         public async Task QueueMessageBatchAsyncWithManyEventsPublishesToRedisChannel()
         {
+            var logger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
             var mockConnectionMultiplexer = new Mock<IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
             mockConnectionMultiplexer.Setup(x => x.GetSubscriber(It.IsAny<object>())).Returns(mockSubscriber.Object);
@@ -134,7 +139,9 @@ namespace StreamingTests
                 MockConnectionMultiplexerFactory.Returns(mockConnectionMultiplexer.Object),
                 mockRedisDataAdapter.Object,
                 mockQueueStreamMapper.Object,
-                null, ValidServiceId, ValidProviderName);
+                logger.Object,
+                ValidServiceId,
+                ValidProviderName);
 
             var expectedMessages = new List<RedisValue>();
             for (var i = 0; i < 100; i++)
@@ -146,5 +153,7 @@ namespace StreamingTests
 
             AssertEx.Equal(expectedMessages, actualMessages);
         }
+
+        private ILogger MockLogger() => (new Mock<ILogger> { DefaultValue = DefaultValue.Mock }).Object;
     }
 }
