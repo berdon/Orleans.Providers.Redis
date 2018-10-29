@@ -95,7 +95,7 @@ namespace Orleans.Storage
 
                 if (storedState != null)
                 {
-                    await ValidateETag(grainState.ETag, storedState);
+                    await ValidateETag(grainState.ETag, storedState, stateType);
                 }
 
                 await Task.Run(() => _redisClient.StoreObject(_serializationManager, grainState.State, stateType, key));
@@ -134,15 +134,18 @@ namespace Orleans.Storage
         /// <summary>
         /// Throws InconsistentStateException if ETags don't match up.
         /// </summary>
-        private Task ValidateETag<T>(string currentETag, T storedDocument)
+        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType)
         {
             var storedETag = GenerateETag(storedDocument, typeof(T));
             if (storedETag != currentETag)
             {
-                // Etags don't match! Inconsistent state
-                throw new InconsistentStateException(
-                    $"Inconsistent state detected while performing write operations for type:{typeof(T).Name}.", storedETag,
-                    currentETag);
+                if (_options.ThrowExceptionOnInconsistentETag) {
+                    // Etags don't match! Inconsistent state
+                    throw new InconsistentStateException(
+                        $"Inconsistent state detected while performing write operations for type:{stateType.Name}.", storedETag, currentETag);
+                }
+
+                _logger.Warning("Inconsistent state detected while performing write operations for type:{typeof(T).Name}.", stateType.Name);
             }
 
             return Task.CompletedTask;
