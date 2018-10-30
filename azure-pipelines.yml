@@ -101,16 +101,44 @@ jobs:
     displayName: 'Restoring Packages'
 
   - script: dotnet build --configuration Debug --version-suffix $(Build.BuildNumber)
-    condition: ne(variables['Build.SourceBranch'], 'refs/heads/release')
+    condition: |
+      or(
+        and(
+          eq(variables['Publish.Force'], 'false'),
+          ne(variables['Build.SourceBranch'], 'refs/heads/release')
+        ),
+        and(
+          eq(variables['Publish.Force'], 'true'),
+          eq(variables['Publish.Target'], 'ci')
+        )
+      )
     displayName: 'Building'
 
   - script: dotnet build --configuration Release
-    condition: eq(variables['Build.SourceBranch'], 'refs/heads/release')
+    condition: |
+      or(
+        and(
+          eq(variables['Publish.Force'], 'false'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/release')
+        ),
+        and(
+          eq(variables['Publish.Force'], 'true'),
+          eq(variables['Publish.Target'], 'release')
+        )
+      )
     displayName: 'Building (Release)'
 
   - task: NuGetCommand@2
     displayName: 'Publishing Build'
-    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq(variables['Build.SourceBranch'], 'refs/heads/release')))
+    condition: |
+      and(
+        succeeded(),
+        or(
+          eq(variables['Publish.Force'], 'true'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/release')
+        )
+      )
     inputs:
       command: push
       nuGetFeedType: external
