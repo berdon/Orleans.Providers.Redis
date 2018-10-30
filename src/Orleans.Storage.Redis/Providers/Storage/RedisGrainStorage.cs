@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using Serilog.Events;
 
 namespace Orleans.Storage
 {
@@ -72,6 +73,10 @@ namespace Orleans.Storage
                     grainState.ETag = GenerateETag(state, stateType);
                     grainState.State = state;
                 }
+
+                if (_logger.IsEnabled(LogEventLevel.Debug)) {
+                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "ReadStateAsync", grainType, grainReference.ToKeyString());
+                }
             }
             catch (Exception e)
             {
@@ -82,7 +87,6 @@ namespace Orleans.Storage
         private async Task<object> ReadStateFromRedisAsync(string key, Type type)
         {
             return await Task.Run(() => _redisClient.GetObject(_serializationManager, key, type));
-
         }
 
         public async Task WriteStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
@@ -95,11 +99,15 @@ namespace Orleans.Storage
 
                 if (storedState != null)
                 {
-                    await ValidateETag(grainState.ETag, storedState, stateType);
+                    await ValidateETag(grainState.ETag, storedState, stateType, grainReference);
                 }
 
                 await Task.Run(() => _redisClient.StoreObject(_serializationManager, grainState.State, stateType, key));
                 grainState.ETag = GenerateETag(grainState.State, stateType);
+
+                if (_logger.IsEnabled(LogEventLevel.Debug)) {
+                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "WriteStateAsync", grainType, grainReference.ToKeyString());
+                }
             }
             catch (Exception e)
             {
@@ -115,6 +123,10 @@ namespace Orleans.Storage
                 var stateType = grainState.State.GetType();
                 await Task.Run(() => _redisClient.DeleteObject(stateType, key));
                 grainState.ETag = null;
+
+                if (_logger.IsEnabled(LogEventLevel.Debug)) {
+                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "ClearStateAsync", grainType, grainReference.ToKeyString());
+                }
             }
             catch (Exception e)
             {
@@ -134,7 +146,7 @@ namespace Orleans.Storage
         /// <summary>
         /// Throws InconsistentStateException if ETags don't match up.
         /// </summary>
-        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType)
+        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType, GrainReference reference)
         {
             var storedETag = GenerateETag(storedDocument, typeof(T));
             if (storedETag != currentETag)
@@ -145,7 +157,10 @@ namespace Orleans.Storage
                         $"Inconsistent state detected while performing write operations for type:{stateType.Name}.", storedETag, currentETag);
                 }
 
-                _logger.Warning("Inconsistent state detected while performing write operations for type:{typeof(T).Name}.", stateType.Name);
+                _logger.Warning(
+                    "Inconsistent state detected while performing write operations for type:{typeof(T).Name} for {GrainReference}.",
+                    stateType.Name,
+                    reference.ToKeyString());
             }
 
             return Task.CompletedTask;

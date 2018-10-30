@@ -88,6 +88,16 @@ jobs:
     displayName: 'Cleanup Redis'
 
 - job: Publish
+  condition: |
+    and(
+      succeeded(),
+      or(
+        eq(variables['Publish.Force'], 'true'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/release')
+      )
+    )
+
   dependsOn:
   - Linux
   - Windows
@@ -130,15 +140,7 @@ jobs:
 
   - task: NuGetCommand@2
     displayName: 'Publishing Build'
-    condition: |
-      and(
-        succeeded(),
-        or(
-          eq(variables['Publish.Force'], 'true'),
-          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
-          eq(variables['Build.SourceBranch'], 'refs/heads/release')
-        )
-      )
+    condition: succeeded()
     inputs:
       command: push
       nuGetFeedType: external
