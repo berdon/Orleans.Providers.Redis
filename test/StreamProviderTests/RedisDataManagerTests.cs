@@ -51,7 +51,7 @@ namespace StreamingTests
         [Fact]
         public async Task SubscribeAsyncSubscribesToRedisChannel()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             subscriber
                 .Setup(x => x.SubscribeAsync(ExpectedChannelName, It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()))
@@ -66,7 +66,7 @@ namespace StreamingTests
         [Fact]
         public async Task InitAsyncRespectsCancellationTokenTimeout()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             var ct = new CancellationToken(true);
             await AssertEx.ThrowsAnyAsync<AggregateException>(() => rdm.InitAsync(ct), e => e.InnerException is TaskCanceledException);
@@ -75,7 +75,7 @@ namespace StreamingTests
         [Fact]
         public async Task SubscribeAsyncRespectsCancellationTokenTimeout()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             await rdm.InitAsync();
 
@@ -86,7 +86,7 @@ namespace StreamingTests
         [Fact]
         public async Task UnsubscribeAsyncRespectsCancellationTokenTimeout()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             await rdm.InitAsync();
 
@@ -97,7 +97,7 @@ namespace StreamingTests
         [Fact]
         public async Task UnsubscribeAsyncUnsubscribesFromRedisChannel()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             Action<RedisChannel, RedisValue> subscribedHandler = null;
             subscriber
@@ -121,7 +121,7 @@ namespace StreamingTests
         [Fact]
         public async Task MessagesFromRedisReturnedByGetQueueMessagesAsync()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             RedisChannel subscribedChannel = (string) null;
             Action<RedisChannel, RedisValue> subscribedHandler = null;
@@ -158,7 +158,7 @@ namespace StreamingTests
         [Fact]
         public async Task PublishedMessagesCallToRedisPublishAsync()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             var actualPublishedMessages = new List<byte[]>();
             subscriber
@@ -193,7 +193,7 @@ namespace StreamingTests
         [InlineData(10000)]
         public async Task QueuedMessagesHaveAnUpperBoundLimit(int queueCapacity)
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager(redisStreamOptions: new RedisStreamOptions
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager(redisStreamOptions: new RedisStreamOptions
             {
                 ConnectionString = "",
                 QueueCacheSize = queueCapacity
@@ -209,6 +209,7 @@ namespace StreamingTests
                     subscribedHandler = handler;
                 })
                 .Returns(Task.CompletedTask);
+            logger.Setup(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)));
 
             await rdm.InitAsync();
             await rdm.SubscribeAsync();
@@ -221,12 +222,77 @@ namespace StreamingTests
             }
 
             Assert.Equal(queueCapacity, rdm.TestHook_Queue.Count);
+
+            await rdm.GetQueueMessagesAsync(queueCapacity);
+
+            logger.Verify(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)), Times.Once());
+        }
+
+        /// <summary>
+        /// Tests to make sure queued messages can't grown unbounded if they're
+        /// never culled.
+        /// </summary>
+        [Theory]
+        [InlineData(10)]
+        [InlineData(100)]
+        [InlineData(1000)]
+        [InlineData(10000)]
+        public async Task DroppedMessagesLoggedOnceForGroupOfMessages(int queueCapacity)
+        {
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager(redisStreamOptions: new RedisStreamOptions
+            {
+                ConnectionString = "",
+                QueueCacheSize = queueCapacity
+            });
+
+            RedisChannel subscribedChannel = (string)null;
+            Action<RedisChannel, RedisValue> subscribedHandler = null;
+            subscriber
+                .Setup(x => x.SubscribeAsync(ExpectedChannelName, It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()))
+                .Callback((RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags commandFlags) =>
+                {
+                    subscribedChannel = channel;
+                    subscribedHandler = handler;
+                })
+                .Returns(Task.CompletedTask);
+            logger.Setup(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)));
+
+            await rdm.InitAsync();
+            await rdm.SubscribeAsync();
+
+            var message = new byte[0];
+
+            for (var i = 0; i < queueCapacity + 1; i++)
+            {
+                subscribedHandler(subscribedChannel, message);
+            }
+
+            Assert.Equal(queueCapacity, rdm.TestHook_Queue.Count);
+
+            await rdm.GetQueueMessagesAsync(queueCapacity);
+
+            logger.Verify(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)), Times.Once());
+
+            await rdm.GetQueueMessagesAsync(queueCapacity);
+
+            logger.Verify(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)), Times.Once());
+
+            for (var i = 0; i < queueCapacity + 1; i++)
+            {
+                subscribedHandler(subscribedChannel, message);
+            }
+
+            Assert.Equal(queueCapacity, rdm.TestHook_Queue.Count);
+
+            await rdm.GetQueueMessagesAsync(queueCapacity);
+
+            logger.Verify(x => x.Warning(It.Is<string>(y => y == "Dropped {Count} messages on the floor due to overflowing cache size"), It.Is<int>(y => y == 1)), Times.Exactly(2));
         }
 
         [Fact]
         public async Task UnsubscribedInstanceDoesntCallRedisSubscribeAsync()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
 
             subscriber
                 .Setup(x => x.SubscribeAsync(ExpectedChannelName, It.IsAny<Action<RedisChannel, RedisValue>>(), It.IsAny<CommandFlags>()))
@@ -240,7 +306,7 @@ namespace StreamingTests
         [Fact]
         public async Task UnsubscribeAsyncDoesntDisposeConnectionMultiplexer()
         {
-            var (connectionMultiplexer, subscriber, rdm) = MockRedisDataManager();
+            var (connectionMultiplexer, subscriber, logger, rdm) = MockRedisDataManager();
             connectionMultiplexer.Setup(x => x.Dispose());
 
             await rdm.InitAsync();
@@ -250,11 +316,13 @@ namespace StreamingTests
             connectionMultiplexer.Verify(x => x.Dispose(), Times.Never());
         }
 
-        private (Mock<IConnectionMultiplexer> MockConnectionMultiplexer, Mock<ISubscriber> MockSubscriber, RedisDataManager RedisDataManager) MockRedisDataManager(Mock<IConnectionMultiplexerFactory> connectionMultiplexerFactory = null, RedisStreamOptions redisStreamOptions = null)
+        private (Mock<IConnectionMultiplexer> MockConnectionMultiplexer, Mock<ISubscriber> MockSubscriber, Mock<ILogger> MockLogger, RedisDataManager RedisDataManager) MockRedisDataManager(Mock<IConnectionMultiplexerFactory> connectionMultiplexerFactory = null, RedisStreamOptions redisStreamOptions = null)
         {
             var mockConnectionMultiplexer = new Mock <IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
             var mockLogger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
+            mockLogger.Setup(x => x.ForContext<RedisDataManager>()).Callback(() => { int j = 5; }).Returns(mockLogger.Object);
+
             mockConnectionMultiplexer
                 .Setup(x => x.GetSubscriber(It.IsAny<object>()))
                 .Returns(mockSubscriber.Object);
@@ -266,7 +334,7 @@ namespace StreamingTests
                 TestConstants.ValidQueueName,
                 TestConstants.ValidServiceId);
 
-            return (mockConnectionMultiplexer, mockSubscriber, rdm);
+            return (mockConnectionMultiplexer, mockSubscriber, mockLogger, rdm);
         }
     }
 }
