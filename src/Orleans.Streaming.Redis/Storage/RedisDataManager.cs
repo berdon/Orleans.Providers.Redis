@@ -36,6 +36,8 @@ namespace Orleans.Streaming.Redis.Storage
 
         internal ConcurrentQueue<RedisValue> TestHook_Queue => _queue;
 
+        private int _droppedMessagesCount = 0;
+
         private RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger logger, string queueName)
         {
             queueName = SanitizeQueueName(queueName);
@@ -126,6 +128,12 @@ namespace Orleans.Streaming.Redis.Storage
 
             try
             {
+                if (_droppedMessagesCount > 0)
+                {
+                    _logger.Warning("Dropped {Count} messages on the floor due to overflowing cache size", _droppedMessagesCount);
+                    _droppedMessagesCount = 0;
+                }
+
                 if (_queue.Count <= 0) return Task.FromResult(EmptyRedisValueEnumerable);
 
                 if (count < 0 || count == UnlimitedMessageCount)
@@ -201,15 +209,9 @@ namespace Orleans.Streaming.Redis.Storage
             }
 
             // Dequeue until we're below our queue cache limit
-            int droppedCount = 0;
             while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _))
             {
-                droppedCount++;
-            }
-
-            if (droppedCount > 0)
-            {
-                _logger.Warning("Dropped {Count} messages on the floor due to overflowing cache size", droppedCount);
+                _droppedMessagesCount++;
             }
         }
 
