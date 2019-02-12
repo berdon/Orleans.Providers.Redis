@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Orleans.Configuration;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
@@ -322,7 +322,7 @@ namespace StreamingTests
             var mockConnectionMultiplexer = new Mock <IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
             var mockLogger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
-            mockLogger.Setup(x => x.ForContext<RedisDataManager>()).Returns(mockLogger.Object);
+            mockLogger.Setup(x => x.ForContext<RedisDataManager>()).Callback(() => { int j = 5; }).Returns(mockLogger.Object);
             mockLogger.Setup(x => x.ForContext(It.IsAny<ILogEventEnricher>())).Returns(mockLogger.Object);
 
             mockConnectionMultiplexer

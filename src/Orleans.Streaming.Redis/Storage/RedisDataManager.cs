@@ -1,4 +1,4 @@
-﻿using StackExchange.Redis;
+using StackExchange.Redis;
 using Serilog;
 using System;
 using System.Collections.Concurrent;
