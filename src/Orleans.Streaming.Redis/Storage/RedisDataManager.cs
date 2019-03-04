@@ -45,14 +45,21 @@ namespace Orleans.Streaming.Redis.Storage
 
             _options = options;
             _connectionMultiplexerFactory = connectionMultiplexerFactory;
-            _logger = logger.ForContext<RedisDataManager>();
+            _logger = logger.ForContext<RedisDataManager>(new Dictionary<string, object>()
+            {
+                { "QueueName", queueName }
+            });
             QueueName = queueName;
 
             _redisChannel = new RedisChannel(QueueName, RedisChannel.PatternMode.Literal);
         }
 
-        public RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName, string serviceId)
-            : this(options, connectionMultiplexerFactory, loggerFactory, serviceId + ":" + queueName) { }
+        public RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName, string serviceId, string clusterId)
+            : this(
+                  options,
+                  connectionMultiplexerFactory,
+                  loggerFactory,
+                  options.PersistenceLifetime == PersistenceLifetime.ServiceLifetime ? (serviceId + ":" + queueName) : (clusterId + ":" + queueName)) { }
 
         public async Task InitAsync(CancellationToken ct = default)
         {
@@ -61,6 +68,8 @@ namespace Orleans.Streaming.Redis.Storage
             try
             {
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
+                _logger.Debug("Initializing RedisDataManager with {QueueCacheSize} and connecting to {ConnectionString}", _options.QueueCacheSize, _options.ConnectionString);
 
                 _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
 
@@ -84,6 +93,8 @@ namespace Orleans.Streaming.Redis.Storage
             {
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
 
+                _logger.Debug("Subscribing to Redis PubSub {Channel}", _redisChannel);
+
                 var subscription = _connectionMultiplexer.GetSubscriber();
                 await subscription.SubscribeAsync(_redisChannel, OnChannelReceivedData);
 
@@ -106,6 +117,8 @@ namespace Orleans.Streaming.Redis.Storage
             try
             {
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
+
+                _logger.Debug("Unsubscribing from Redis PubSub {Channel}", _redisChannel);
 
                 var subscription = _connectionMultiplexer.GetSubscriber();
                 await subscription.UnsubscribeAsync(_redisChannel, OnChannelReceivedData);
@@ -146,6 +159,8 @@ namespace Orleans.Streaming.Redis.Storage
                 {
                     items.Add(item);
                 }
+
+                _logger.Debug("Retrieved {Count} messages", items.Count);
 
                 return Task.FromResult(items.AsEnumerable());
             }
@@ -203,13 +218,8 @@ namespace Orleans.Streaming.Redis.Storage
         {
             _queue.Enqueue(value);
 
-            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
-            {
-                _logger.Verbose("{Queue} has {Count} messages", QueueName, _queue.Count);
-            }
-
             // Dequeue until we're below our queue cache limit
-            while (_queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _))
+            while (_options.QueueCacheSize > 0 && _queue.Count > _options.QueueCacheSize && _queue.TryDequeue(out var _))
             {
                 _droppedMessagesCount++;
             }

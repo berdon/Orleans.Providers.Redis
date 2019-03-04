@@ -16,6 +16,16 @@ namespace Orleans.Configuration
         /// normal stream pulling.
         /// </summary>
         public int QueueCacheSize { get; set; } = 1000;
+
+        /// <summary>
+        /// <para>
+        /// Whether stream messages should use the same pipeline across
+        /// deployments or should be separate between deployments.
+        /// </para>
+        /// Defaults to true
+        /// </summary>
+        public PersistenceLifetime PersistenceLifetime { get; set; } = DEFAULT_PERSISTENCE_LIFETIME;
+        public const PersistenceLifetime DEFAULT_PERSISTENCE_LIFETIME = PersistenceLifetime.ServiceLifetime;
     }
 
     public class RedisStreamOptionsValidator : IConfigurationValidator

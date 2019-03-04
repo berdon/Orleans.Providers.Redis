@@ -3,6 +3,7 @@ using Orleans.Configuration;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
 using Serilog;
+using Serilog.Core;
 using Shared;
 using Shared.Mocking;
 using StackExchange.Redis;
@@ -36,14 +37,14 @@ namespace StreamingTests
         [Fact]
         public void ConstructorThrowsOnInvalidQueueName()
         {
-            // The public constructor always prepends the service ID so the
-            // minimum length required for the queue name is MAX_KEY_LENGTH
-            // minus the service ID length.
+            // The public constructor always prepends the service or cluster ID
+            // so the minimum length required for the queue name is
+            // MAX_KEY_LENGTH minus the service ID length.
             foreach (var invalidQueueName in InvalidConcatenatedServiceQueueNames)
             {
                 AssertEx.ThrowsAny<ArgumentException, RedisStreamOptions, string, string>(
                     // A non-0 length string is a valid service name
-                    (arg1, arg2, arg3) => new RedisDataManager(TestConstants.ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, invalidQueueName, "-"),
+                    (arg1, arg2, arg3) => new RedisDataManager(TestConstants.ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, invalidQueueName, "-", "-"),
                     TestConstants.ValidRedisStreamOptions, (string) null, invalidQueueName);
             }
         }
@@ -321,7 +322,8 @@ namespace StreamingTests
             var mockConnectionMultiplexer = new Mock <IConnectionMultiplexer> { DefaultValue = DefaultValue.Mock };
             var mockSubscriber = new Mock<ISubscriber> { DefaultValue = DefaultValue.Mock };
             var mockLogger = new Mock<ILogger>() { DefaultValue = DefaultValue.Mock };
-            mockLogger.Setup(x => x.ForContext<RedisDataManager>()).Callback(() => { int j = 5; }).Returns(mockLogger.Object);
+            mockLogger.Setup(x => x.ForContext<RedisDataManager>()).Returns(mockLogger.Object);
+            mockLogger.Setup(x => x.ForContext(It.IsAny<ILogEventEnricher>())).Returns(mockLogger.Object);
 
             mockConnectionMultiplexer
                 .Setup(x => x.GetSubscriber(It.IsAny<object>()))
@@ -332,7 +334,8 @@ namespace StreamingTests
                 connectionMultiplexerFactory?.Object ?? MockConnectionMultiplexerFactory.Returns(mockConnectionMultiplexer.Object),
                 mockLogger.Object,
                 TestConstants.ValidQueueName,
-                TestConstants.ValidServiceId);
+                TestConstants.ValidServiceId,
+                TestConstants.ValidClusterId);
 
             return (mockConnectionMultiplexer, mockSubscriber, mockLogger, rdm);
         }

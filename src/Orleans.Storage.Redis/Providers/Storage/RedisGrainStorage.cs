@@ -73,10 +73,6 @@ namespace Orleans.Storage
                     grainState.ETag = GenerateETag(state, stateType);
                     grainState.State = state;
                 }
-
-                if (_logger.IsEnabled(LogEventLevel.Debug)) {
-                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "ReadStateAsync", grainType, grainReference.ToKeyString());
-                }
             }
             catch (Exception e)
             {
@@ -104,10 +100,6 @@ namespace Orleans.Storage
 
                 await Task.Run(() => _redisClient.StoreObject(_serializationManager, grainState.State, stateType, key));
                 grainState.ETag = GenerateETag(grainState.State, stateType);
-
-                if (_logger.IsEnabled(LogEventLevel.Debug)) {
-                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "WriteStateAsync", grainType, grainReference.ToKeyString());
-                }
             }
             catch (Exception e)
             {
@@ -123,10 +115,6 @@ namespace Orleans.Storage
                 var stateType = grainState.State.GetType();
                 await Task.Run(() => _redisClient.DeleteObject(stateType, key));
                 grainState.ETag = null;
-
-                if (_logger.IsEnabled(LogEventLevel.Debug)) {
-                    _logger.Debug("{Function} complete for {GrainType} with {GrainReference}", "ClearStateAsync", grainType, grainReference.ToKeyString());
-                }
             }
             catch (Exception e)
             {

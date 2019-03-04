@@ -79,6 +79,7 @@ namespace Orleans.Providers.Streams.Redis
                 _streamQueueMapper,
                 _logger,
                 _clusterOptions.ServiceId,
+                _clusterOptions.ClusterId,
                 _providerName);
 
             return Task.FromResult<IQueueAdapter>(adapter);
