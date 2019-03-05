@@ -24,6 +24,7 @@ namespace CoreTests.Integration
     [Category("BVT")]
     [Category("Integration")]
     [Feature("Streaming")]
+    [Collection("OrleansIntegrationTests")]
     public class OrleansTestsWithClusterLifetime
     {
         private const string StreamProviderName = nameof(StreamProviderName);
