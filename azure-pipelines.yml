@@ -13,7 +13,7 @@ jobs:
   - script: docker run -d --name test-redis --rm -p 6379:6379 redis
     displayName: 'Start Redis docker container for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v detailed --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
@@ -42,7 +42,7 @@ jobs:
       start "redis" redis-server
     displayName: 'Install and run Redis for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v detailed --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
@@ -72,7 +72,7 @@ jobs:
       brew services start redis
     displayName: 'Install and run Redis for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v detailed --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
