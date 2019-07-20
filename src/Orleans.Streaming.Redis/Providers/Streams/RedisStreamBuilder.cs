@@ -6,28 +6,33 @@ using Orleans.Hosting;
 using Orleans.Streams;
 using System;
 using Orleans.Providers.Streams.Redis;
+using Orleans.ApplicationParts;
 
 namespace Orleans.Streaming
 {
     public class SiloRedisStreamConfigurator : SiloPersistentStreamConfigurator
     {
-        public SiloRedisStreamConfigurator(string name, ISiloHostBuilder builder)
-            : base(name, builder, RedisQueueAdapterFactory.Create)
+        public SiloRedisStreamConfigurator(string name, Action<Action<IServiceCollection>> configureDelegate, Action<Action<IApplicationPartManager>> configureAppPartsDelegate)
+            : base(name, configureDelegate: configureDelegate, adapterFactory: RedisQueueAdapterFactory.Create)
         {
-            this.siloBuilder
-                .ConfigureApplicationParts(parts => parts.AddFrameworkPart(typeof(RedisQueueAdapterFactory).Assembly))
-                .ConfigureServices(services =>
-                {
-                    services.TryAddSingleton(SilentLogger.Logger);
-                    services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
-                    services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
-                    services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
-                    services.AddSingleton<IRedisDataAdapter, RedisDataAdapter>();
-                    services.AddTransient<IConfigurationValidator>(sp => new RedisStreamOptionsValidator(sp.GetOptionsByName<RedisStreamOptions>(name), name));
-                    services.ConfigureNamedOptionForLogging<SimpleQueueCacheOptions>(name);
-                    services.AddTransient<IConfigurationValidator>(sp => new SimpleQueueCacheOptionsValidator(sp.GetOptionsByName<SimpleQueueCacheOptions>(name), name));
-                    services.ConfigureNamedOptionForLogging<HashRingStreamQueueMapperOptions>(name);
-                });
+
+            this.configureDelegate(services =>
+            {
+                services.TryAddSingleton(SilentLogger.Logger);
+                services.ConfigureNamedOptionForLogging<RedisStreamOptions>(name);
+                services.TryAddSingleton(CachedConnectionMultiplexerFactory.Default);
+                services.TryAddSingleton<ISerializationManager, OrleansSerializationManager>();
+                services.AddSingleton<IRedisDataAdapter, RedisDataAdapter>();
+                services.AddTransient<IConfigurationValidator>(sp => new RedisStreamOptionsValidator(sp.GetOptionsByName<RedisStreamOptions>(name), name));
+                services.ConfigureNamedOptionForLogging<SimpleQueueCacheOptions>(name);
+                services.AddTransient<IConfigurationValidator>(sp => new SimpleQueueCacheOptionsValidator(sp.GetOptionsByName<SimpleQueueCacheOptions>(name), name));
+                services.ConfigureNamedOptionForLogging<HashRingStreamQueueMapperOptions>(name);
+            });
+
+            configureAppPartsDelegate(parts =>
+            {
+                parts.AddFrameworkPart(typeof(RedisQueueAdapterFactory).Assembly);
+            });
 
             this.ConfigureStreamPubSub(StreamPubSubType.ExplicitGrainBasedAndImplicit);
         }

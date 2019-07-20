@@ -18,6 +18,7 @@ using Xunit.Categories;
 using Shared;
 using Orleans.Redis.Common;
 using System.Collections.Generic;
+using Microsoft.Extensions.Options;
 
 namespace CoreTests.Integration
 {

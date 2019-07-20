@@ -14,7 +14,9 @@ namespace Orleans.Hosting
         /// </summary>
         public static ISiloHostBuilder AddRedisStreams(this ISiloHostBuilder builder, string name, Action<SiloRedisStreamConfigurator> configure)
         {
-            var configurator = new SiloRedisStreamConfigurator(name, builder);
+            var configurator = new SiloRedisStreamConfigurator(name, 
+                configureServicesDelegate => builder.ConfigureServices(configureServicesDelegate),
+                configureAppPartsDelegate => builder.ConfigureApplicationParts(configureAppPartsDelegate));
             configure?.Invoke(configurator);
             return builder;
         }
