@@ -28,11 +28,11 @@ namespace StreamingTests
             "12",
             new string(' ', 255),
         };
-        private static readonly string[] InvalidServiceIds = new[]
+        private static readonly string[] InvalidClusterIds = new[]
         {
             ""
         };
-        private const string ExpectedChannelName = TestConstants.ValidServiceId + ":" + TestConstants.ValidQueueName;
+        private const string ExpectedChannelName = TestConstants.ValidClusterId + ":" + TestConstants.ValidQueueName;
 
         [Fact]
         public void ConstructorThrowsOnInvalidQueueName()

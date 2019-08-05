@@ -1,0 +1,5 @@
+{
+    "dotnet-test-explorer.autoExpandTree": true,
+    "dotnet-test-explorer.autoWatch": true,
+    "dotnet-test-explorer.testProjectPath": "**/*Test*.csproj"
+}

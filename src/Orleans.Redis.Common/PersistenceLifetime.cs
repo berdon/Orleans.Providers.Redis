@@ -1,7 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace Orleans.Configuration
 {
     public enum PersistenceLifetime
@@ -12,7 +8,7 @@ namespace Orleans.Configuration
         /// the Orlean's Service ID.
         /// </summary>
         ServiceLifetime = 0,
-
+        
         /// <summary>
         /// Indicates persistence should be associated with the cluster lifetime
         /// and should be unique between deployment and redeployment. This is

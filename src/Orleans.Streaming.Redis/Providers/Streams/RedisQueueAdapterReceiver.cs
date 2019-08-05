@@ -38,7 +38,7 @@ namespace Orleans.Providers.Streams.Redis
             IRedisDataAdapter dataAdapter)
         {
             if (queueId == null) throw new ArgumentNullException(nameof(queueId));
-            if (string.IsNullOrEmpty(serviceId)) throw new ArgumentNullException(nameof(serviceId));
+            if (string.IsNullOrEmpty(clusterId)) throw new ArgumentNullException(nameof(clusterId));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (connectionMultiplexerFactory == null) throw new ArgumentNullException(nameof(connectionMultiplexerFactory));
             if (dataAdapter == null) throw new ArgumentNullException(nameof(dataAdapter));

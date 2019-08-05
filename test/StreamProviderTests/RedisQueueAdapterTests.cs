@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Newtonsoft.Json;
 using Orleans.Configuration;
 using Orleans.Providers.Streams.Common;

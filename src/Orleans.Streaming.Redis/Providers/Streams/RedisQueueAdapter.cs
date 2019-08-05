@@ -1,4 +1,4 @@
-﻿using Orleans.Configuration;
+using Orleans.Configuration;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
 using Orleans.Streams;

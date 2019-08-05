@@ -1,4 +1,3 @@
-﻿using Orleans.Redis.Common;
 using Orleans.Runtime;
 using System;
 
@@ -24,8 +23,13 @@ namespace Orleans.Configuration
         /// </para>
         /// Defaults to true
         /// </summary>
-        public PersistenceLifetime PersistenceLifetime { get; set; } = DEFAULT_PERSISTENCE_LIFETIME;
-        public const PersistenceLifetime DEFAULT_PERSISTENCE_LIFETIME = PersistenceLifetime.ServiceLifetime;
+        public PersistenceLifetime PersistenceLifetime { get;set; } = DEFAULT_PERSISTENCE_LIFETIME;
+
+        /// <summary>
+        /// Dictates how stream pubsub channels are named. In nearly all normal situations this
+        /// should probably be PersistenceLifetime.ClusterLifetime.
+        /// </summary>
+        public const PersistenceLifetime DEFAULT_PERSISTENCE_LIFETIME = PersistenceLifetime.ClusterLifetime;
     }
 
     public class RedisStreamOptionsValidator : IConfigurationValidator

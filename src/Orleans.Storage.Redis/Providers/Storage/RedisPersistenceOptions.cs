@@ -1,5 +1,4 @@
-﻿using Orleans.Redis.Common;
-using Orleans.Runtime;
+﻿using Orleans.Runtime;
 using System;
 
 namespace Orleans.Configuration
