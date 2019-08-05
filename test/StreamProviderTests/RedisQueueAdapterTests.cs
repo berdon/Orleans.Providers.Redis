@@ -26,6 +26,7 @@ namespace StreamingTests
         private static readonly Guid ValidStreamGuid = Guid.NewGuid();
         private const string ValidStreamNamespace = "SomeValidStreamNamespace";
         private const string ValidServiceId = "SomeValidServiceId";
+        private const string ValidClusterId = "SomeValidClusterId";
         private const string ValidProviderName = "SomeValidProviderName";
         private static readonly RedisStreamOptions ValidRedisStreamOptions = new RedisStreamOptions
         {
@@ -34,32 +35,36 @@ namespace StreamingTests
 
         [Fact]
         public void NullRedisStreamOptionsParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(null, null, null, null, null, null, null), e => e.ParamName == "options");
+            () => new RedisQueueAdapter(null, null, null, null, null, null, null, null), e => e.ParamName == "options");
 
         [Fact]
         public void NullConnectionMultiplexerFactoryParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(ValidRedisStreamOptions, null, null, null, null, null, null), e => e.ParamName == "connectionMultiplexerFactory");
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, null, null, null, null, null, null, null), e => e.ParamName == "connectionMultiplexerFactory");
 
         [Fact]
         public void NullDataAdapterParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, null, null, null, null), e => e.ParamName == "dataAdapter");
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, null, null, null, null, null), e => e.ParamName == "dataAdapter");
 
         [Fact]
         public void NullStreamQueueMapperParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), null, null, null, null), e => e.ParamName == "streamQueueMapper");
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), null, null, null, null, null), e => e.ParamName == "streamQueueMapper");
 
         [Fact]
         public void NullServiceIdParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, null, null), e => e.ParamName == "serviceId");
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, null, null, null), e => e.ParamName == "serviceId");
+        
+        [Fact]
+        public void NullClusterIdParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, ValidServiceId, null, null), e => e.ParamName == "clusterId");
 
         [Fact]
         public void NullProviderNameParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
-            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, ValidServiceId, null), e => e.ParamName == "providerName");
+            () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, ValidServiceId, ValidClusterId, null), e => e.ParamName == "providerName");
 
         [Fact]
         public async Task PassingNonNullTokenThrownsArgumentException()
         {
-            var rqa = new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), MockLogger(), ValidServiceId, ValidProviderName);
+            var rqa = new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), MockLogger(), ValidServiceId, ValidClusterId, ValidProviderName);
 
             await AssertEx.ThrowsAnyAsync<ArgumentException>(
                 () => rqa.QueueMessageBatchAsync(ValidStreamGuid, ValidStreamNamespace, new[] { "Something" }, new EventSequenceTokenV2(0), null),
@@ -97,6 +102,7 @@ namespace StreamingTests
                 mockQueueStreamMapper.Object,
                 logger.Object,
                 ValidServiceId,
+                ValidClusterId,
                 ValidProviderName);
 
             var expectedMessages = new List<RedisValue>();
@@ -141,6 +147,7 @@ namespace StreamingTests
                 mockQueueStreamMapper.Object,
                 logger.Object,
                 ValidServiceId,
+                ValidClusterId,
                 ValidProviderName);
 
             var expectedMessages = new List<RedisValue>();

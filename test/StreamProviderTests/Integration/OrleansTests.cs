@@ -275,6 +275,20 @@ namespace CoreTests.Integration
         }
 
         [MockStreamStorage(StreamStorageName)]
+        private class StreamingClusterFixture2 : StreamingClusterFixture
+        {
+            protected override void OnConfigure(LocalClusterBuilder clusterBuilder)
+            {
+                clusterBuilder.ConfigureCluster(config => {
+                    config.Globals.ClusterId = "Some-Cluster-Id-2";
+                    config.Defaults.Port = 11112;
+                    config.Defaults.ProxyGatewayEndpoint.Port = 30001;
+                });
+                base.OnConfigure(clusterBuilder);
+            }
+        }
+
+        [MockStreamStorage(StreamStorageName)]
         private class StreamingClusterFixture : BaseClusterFixture
         {
             public const string LocalRedisConnectionString = "127.0.0.1:6379";

@@ -1,15 +1,8 @@
-﻿using Orleans.Redis.Common;
-using Orleans.Runtime;
+﻿using Orleans.Runtime;
 using System;
 
 namespace Orleans.Configuration
 {
-    public enum PersistenceLifetime
-    {
-        ServiceLifetime = 0,
-        ClusterLifetime = 1
-    }
-
     public class RedisGrainStorageOptions : RedisOptions
     {
         /// <summary>

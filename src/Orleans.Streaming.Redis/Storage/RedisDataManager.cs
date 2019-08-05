@@ -51,8 +51,8 @@ namespace Orleans.Streaming.Redis.Storage
             _redisChannel = new RedisChannel(QueueName, RedisChannel.PatternMode.Literal);
         }
 
-        public RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName, string serviceId)
-            : this(options, connectionMultiplexerFactory, loggerFactory, serviceId + ":" + queueName) { }
+        public RedisDataManager(RedisStreamOptions options, IConnectionMultiplexerFactory connectionMultiplexerFactory, ILogger loggerFactory, string queueName, string serviceId, string clusterId)
+            : this(options, connectionMultiplexerFactory, loggerFactory, (options.PersistenceLifetime == PersistenceLifetime.ServiceLifetime ? serviceId : clusterId) + ":" + queueName) { }
 
         public async Task InitAsync(CancellationToken ct = default)
         {

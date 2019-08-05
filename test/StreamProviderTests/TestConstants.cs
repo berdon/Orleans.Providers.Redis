@@ -5,6 +5,7 @@ namespace StreamingTests
     public class TestConstants
     {
         public const string ValidServiceId = "SomeServiceId";
+        public const string ValidClusterId = "SomeClusterId";
         public const string ValidQueueName = "SomeValidQueueName";
         public const string ValidProviderName = "SomeValidProviderName";
         public static readonly RedisStreamOptions ValidRedisStreamOptions = new RedisStreamOptions

@@ -15,6 +15,7 @@ namespace Orleans.Providers.Streams.Redis
     internal class RedisQueueAdapter : IQueueAdapter
     {
         private readonly string ServiceId;
+        private readonly string ClusterId;
         private readonly ConcurrentDictionary<QueueId, RedisDataManager> Queues = new ConcurrentDictionary<QueueId, RedisDataManager>();
 
         private readonly RedisStreamOptions _redisStreamOptions;
@@ -35,6 +36,7 @@ namespace Orleans.Providers.Streams.Redis
             IStreamQueueMapper streamQueueMapper,
             ILogger logger,
             string serviceId,
+            string clusterId,
             string providerName)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
@@ -42,11 +44,13 @@ namespace Orleans.Providers.Streams.Redis
             if (dataAdapter == null) throw new ArgumentNullException(nameof(dataAdapter));
             if (streamQueueMapper == null) throw new ArgumentNullException(nameof(streamQueueMapper));
             if (string.IsNullOrEmpty(serviceId)) throw new ArgumentNullException(nameof(serviceId));
+            if (string.IsNullOrEmpty(clusterId)) throw new ArgumentNullException(nameof(clusterId));
             if (string.IsNullOrEmpty(providerName)) throw new ArgumentNullException(nameof(providerName));
 
             _redisStreamOptions = options;
             _connectionMultiplexerFactory = connectionMultiplexerFactory;
             ServiceId = serviceId;
+            ClusterId = clusterId;
             Name = providerName;
             _streamQueueMapper = streamQueueMapper;
             _dataAdapter = dataAdapter;
@@ -59,6 +63,7 @@ namespace Orleans.Providers.Streams.Redis
                 _logger,
                 queueId,
                 ServiceId,
+                ClusterId,
                 _redisStreamOptions,
                 _connectionMultiplexerFactory,
                 _dataAdapter);
@@ -75,7 +80,7 @@ namespace Orleans.Providers.Streams.Redis
 
             if (!Queues.TryGetValue(queueId, out var queue))
             {
-                var tmpQueue = new RedisDataManager(_redisStreamOptions, _connectionMultiplexerFactory, _logger, queueId.ToString(), ServiceId);
+                var tmpQueue = new RedisDataManager(_redisStreamOptions, _connectionMultiplexerFactory, _logger, queueId.ToString(), ServiceId, ClusterId);
                 await tmpQueue.InitAsync();
                 queue = Queues.GetOrAdd(queueId, tmpQueue);
             }

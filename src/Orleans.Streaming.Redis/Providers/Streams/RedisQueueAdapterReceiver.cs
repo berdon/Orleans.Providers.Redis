@@ -31,17 +31,18 @@ namespace Orleans.Providers.Streams.Redis
             ILogger logger,
             QueueId queueId,
             string serviceId,
+            string clusterId,
             RedisStreamOptions options,
             IConnectionMultiplexerFactory connectionMultiplexerFactory,
             IRedisDataAdapter dataAdapter)
         {
             if (queueId == null) throw new ArgumentNullException(nameof(queueId));
-            if (string.IsNullOrEmpty(serviceId)) throw new ArgumentNullException(nameof(serviceId));
+            if (string.IsNullOrEmpty(clusterId)) throw new ArgumentNullException(nameof(clusterId));
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (connectionMultiplexerFactory == null) throw new ArgumentNullException(nameof(connectionMultiplexerFactory));
             if (dataAdapter == null) throw new ArgumentNullException(nameof(dataAdapter));
 
-            var queue = new RedisDataManager(options, connectionMultiplexerFactory, logger, queueId.ToString(), serviceId);
+            var queue = new RedisDataManager(options, connectionMultiplexerFactory, logger, queueId.ToString(), serviceId, clusterId);
             return new RedisQueueAdapterReceiver(logger, queueId, queue, dataAdapter);
         }
 

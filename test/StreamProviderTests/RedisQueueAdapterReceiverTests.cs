@@ -32,6 +32,7 @@ namespace StreamingTests
                 logger.Object,
                 queueId,
                 TestConstants.ValidServiceId,
+                TestConstants.ValidClusterId,
                 TestConstants.ValidRedisStreamOptions,
                 CachedConnectionMultiplexerFactory.Default,
                 dataAdapter.Object);
@@ -58,6 +59,7 @@ namespace StreamingTests
                 logger.Object,
                 queueId,
                 TestConstants.ValidServiceId,
+                TestConstants.ValidClusterId,
                 TestConstants.ValidRedisStreamOptions,
                 CachedConnectionMultiplexerFactory.Default,
                 dataAdapter.Object);

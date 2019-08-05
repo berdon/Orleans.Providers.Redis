@@ -27,11 +27,11 @@ namespace StreamingTests
             "12",
             new string(' ', 255),
         };
-        private static readonly string[] InvalidServiceIds = new[]
+        private static readonly string[] InvalidClusterIds = new[]
         {
             ""
         };
-        private const string ExpectedChannelName = TestConstants.ValidServiceId + ":" + TestConstants.ValidQueueName;
+        private const string ExpectedChannelName = TestConstants.ValidClusterId + ":" + TestConstants.ValidQueueName;
 
         [Fact]
         public void ConstructorThrowsOnInvalidQueueName()
@@ -43,7 +43,7 @@ namespace StreamingTests
             {
                 AssertEx.ThrowsAny<ArgumentException, RedisStreamOptions, string, string>(
                     // A non-0 length string is a valid service name
-                    (arg1, arg2, arg3) => new RedisDataManager(TestConstants.ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, invalidQueueName, "-"),
+                    (arg1, arg2, arg3) => new RedisDataManager(TestConstants.ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, null, invalidQueueName, "-", "-"),
                     TestConstants.ValidRedisStreamOptions, (string) null, invalidQueueName);
             }
         }
@@ -332,7 +332,8 @@ namespace StreamingTests
                 connectionMultiplexerFactory?.Object ?? MockConnectionMultiplexerFactory.Returns(mockConnectionMultiplexer.Object),
                 mockLogger.Object,
                 TestConstants.ValidQueueName,
-                TestConstants.ValidServiceId);
+                TestConstants.ValidServiceId,
+                TestConstants.ValidClusterId);
 
             return (mockConnectionMultiplexer, mockSubscriber, mockLogger, rdm);
         }
