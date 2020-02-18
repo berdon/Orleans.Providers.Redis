@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Orleans;
+using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Providers;
 using Orleans.Redis.Common;
@@ -9,6 +10,7 @@ using Orleans.Runtime;
 using Orleans.Storage;
 using Orleans.Streams;
 using Serilog;
+using Shared.Orleans;
 using SharedOrleansUtils;
 using StackExchange.Redis;
 using StorageTests.GrainInterfaces;
@@ -34,10 +36,10 @@ namespace StorageTests
         private static CancellationToken GetDefaultBlockingToken() => new CancellationTokenSource(DefaultBlockingTimeoutInMs).Token;
 
         [Fact]
-        public Task SubscribedGrainStillSubscribedAfterDeactivation()
+        public async Task SubscribedGrainStillSubscribedAfterDeactivation()
         {
-            var clusterFixture = new ClusterFixture();
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new ClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var grain = clusterFixture.GrainFactory.GetGrain<ITestGrain>(Guid.Empty);
                 await grain.Subscribe();
@@ -51,10 +53,10 @@ namespace StorageTests
         }
 
         [Fact(Skip = "Incomplete")]
-        public Task SubscribeCallToGrainCallsRedisStringSet()
+        public async Task SubscribeCallToGrainCallsRedisStringSet()
         {
-            var clusterFixture = new ClusterFixture();
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new ClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var writeSemaphore = new SemaphoreSlim(0);
                 clusterFixture.Redis
@@ -147,6 +149,8 @@ namespace StorageTests
             public Mock<IDatabase> Redis { get; } = new Mock<IDatabase>();
             public Mock<ILogger> Serilog { get; } = new Mock<ILogger>();
 
+            public ClusterFixture() : base(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100) { }
+
             protected override void OnConfigure(LocalClusterBuilder clusterBuilder)
             {
                 base.OnConfigure(clusterBuilder);
@@ -156,14 +160,12 @@ namespace StorageTests
                     o.AddFromAppDomain();
                     o.AddApplicationPart(Assembly.GetAssembly(typeof(TestGrain)));
                 });
-            }
+            }            
 
             protected override void OnConfigure(ISiloHostBuilder siloHostBuilder)
             {
                 base.OnConfigure(siloHostBuilder);
-
                 siloHostBuilder.AddRedisGrainStorage(StreamStorageName, o => { o.ConnectionString = "127.0.0.1:6379"; });
-                //siloHostBuilder.AddRedisGrainStorageAsDefault(o => { o.ConnectionString = "127.0.0.1:6379"; });
             }
 
             protected override void OnConfigureServices(IServiceCollection services)
@@ -174,8 +176,6 @@ namespace StorageTests
                 services.AddSingleton(Serilog.Object);
 
                 services.TryAddSingleton(Moq.Mock.Of<ISerializationManager>());
-                //services.AddSingletonNamedService(StreamStorageName, RedisGrainStorageFactory.Create);
-                //services.AddSingletonNamedService(StreamStorageName, (s, n) => (ILifecycleParticipant<ISiloLifecycle>)s.GetRequiredServiceByName<IGrainStorage>(n));
             }
         }
     }

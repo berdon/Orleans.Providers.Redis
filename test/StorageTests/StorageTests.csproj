@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Orleans.Storage.Redis\Orleans.Persistence.Redis.csproj" />
     <ProjectReference Include="..\StorageTests.GrainInterfaces\StorageTests.GrainInterfaces.csproj" />
+    <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
 </Project>

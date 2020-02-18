@@ -18,6 +18,8 @@ using Xunit.Categories;
 using Shared;
 using Orleans.Redis.Common;
 using System.Collections.Generic;
+using Bogus;
+using Shared.Orleans;
 
 namespace CoreTests.Integration
 {
@@ -34,11 +36,10 @@ namespace CoreTests.Integration
         private static CancellationTokenSource GetTokenSource(TimeSpan? time = null) => new CancellationTokenSource(time ?? DefaultBlockingTimeout);
 
         [Fact]
-        public Task RedisStreamCanSendAndReceiveItem()
+        public async Task RedisStreamCanSendAndReceiveItem()
         {
-            var clusterFixture = new StreamingClusterFixture();
-
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var streamId = Guid.NewGuid();
                 var streamNamespace = Guid.NewGuid().ToString();
@@ -55,11 +56,10 @@ namespace CoreTests.Integration
         [Theory]
         [InlineData(1, 1)]
         [InlineData(10, 10)]
-        public Task TwoRedisStreamsWithDifferentStreamIdsOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
+        public async Task TwoRedisStreamsWithDifferentStreamIdsOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            var clusterFixture = new StreamingClusterFixture();
-
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var streamId1 = Guid.NewGuid();
                 var streamId2 = Guid.NewGuid();
@@ -98,19 +98,18 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>().OrderBy(x => x));
-                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
             });
         }
 
         [Theory]
         [InlineData(1, 1)]
         [InlineData(10, 10)]
-        public Task TwoRedisStreamsWithSameStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
+        public async Task TwoRedisStreamsWithSameStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            var clusterFixture = new StreamingClusterFixture();
-
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var streamId = Guid.NewGuid();
 
@@ -149,19 +148,18 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
             });
         }
 
         [Theory]
         [InlineData(1, 1)]
         [InlineData(100, 100)]
-        public Task TwoRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
+        public async Task TwoRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            var clusterFixture = new StreamingClusterFixture();
-
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var streamId1 = Guid.NewGuid();
                 var streamId2 = Guid.NewGuid();
@@ -201,19 +199,18 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
             });
         }
 
         [Theory]
         [InlineData(10, 10)]
         [InlineData(100, 10)]
-        public Task NRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int n, int messageCount)
+        public async Task NRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int n, int messageCount)
         {
-            var clusterFixture = new StreamingClusterFixture();
-
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, n, messageCount);
 
@@ -223,7 +220,7 @@ namespace CoreTests.Integration
                 {
                     var items = await set.Awaiter;
                     Assert.Equal(messageCount, items.Count);
-                    AssertEx.Equal(new object[messageCount].Select((_, i) => $"test:{set.StreamId}-{set.StreamNamespace} message:{i}"), items.Cast<string>());
+                    AssertEx.Equal(new object[messageCount].Select((_, i) => $"test:{set.StreamId}-{set.StreamNamespace} message:{i}").OrderBy(x => x), items.Cast<string>().OrderBy(x => x));
                 }
             });
         }
@@ -254,10 +251,10 @@ namespace CoreTests.Integration
         }
 
         [Fact]
-        public Task OnlyOneConnectionMultiplexerIsCreated()
+        public async Task OnlyOneConnectionMultiplexerIsCreated()
         {
-            var clusterFixture = new StreamingClusterFixture();
-            return clusterFixture.Dispatch(async () =>
+            using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
                 // Make sure some producer/consumers are set up
                 var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, 100, 10);
@@ -272,6 +269,8 @@ namespace CoreTests.Integration
         private class StreamingClusterFixture : BaseClusterFixture
         {
             public const string LocalRedisConnectionString = "127.0.0.1:6379";
+
+            public StreamingClusterFixture() : base(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100) { }
 
             protected override void OnConfigure(ISiloHostBuilder siloHostBuilder)
             {

@@ -48,6 +48,6 @@
     <xunit>2.3.1</xunit>
     <xunit_categories>2.0.3</xunit_categories>
     <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
-    <Zuercher_Orleans_Testing_Utils>2.1.0</Zuercher_Orleans_Testing_Utils>
+    <Zuercher_Orleans_Testing_Utils>2.1.1</Zuercher_Orleans_Testing_Utils>
   </PropertyGroup>
 </Project>

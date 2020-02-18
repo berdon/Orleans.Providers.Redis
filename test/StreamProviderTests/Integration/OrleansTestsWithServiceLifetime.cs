@@ -18,6 +18,7 @@ using Xunit.Categories;
 using Shared;
 using Orleans.Redis.Common;
 using System.Collections.Generic;
+using Shared.Orleans;
 
 namespace CoreTests.Integration
 {
@@ -37,20 +38,18 @@ namespace CoreTests.Integration
         public async Task RedisStreamCanSendAndReceiveItem()
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
-                {
-                    var streamId = Guid.NewGuid();
-                    var streamNamespace = Guid.NewGuid().ToString();
+                var streamId = Guid.NewGuid();
+                var streamNamespace = Guid.NewGuid().ToString();
 
-                    var streamSubscriptionAwaiter = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace, 1);
-                    await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace, "test");
-                    using (var cts = GetTokenSource())
-                    {
-                        await streamSubscriptionAwaiter.WaitAsync(cts.Token);
-                    }
-                });
-            }
+                var streamSubscriptionAwaiter = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace, 1);
+                await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace, "test");
+                using (var cts = GetTokenSource())
+                {
+                    await streamSubscriptionAwaiter.WaitAsync(cts.Token);
+                }
+            });
         }
 
         [Theory]
@@ -59,50 +58,48 @@ namespace CoreTests.Integration
         public async Task TwoRedisStreamsWithDifferentStreamIdsOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
+                var streamId1 = Guid.NewGuid();
+                var streamId2 = Guid.NewGuid();
+
+                var streamNamespace = Guid.NewGuid().ToString();
+
+                var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId1, streamNamespace, messageCount1);
+                var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId2, streamNamespace, messageCount2);
+
+                var publishTask1 = Task.Factory.StartNew(async () =>
                 {
-                    var streamId1 = Guid.NewGuid();
-                    var streamId2 = Guid.NewGuid();
-
-                    var streamNamespace = Guid.NewGuid().ToString();
-
-                    var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId1, streamNamespace, messageCount1);
-                    var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId2, streamNamespace, messageCount2);
-
-                    var publishTask1 = Task.Factory.StartNew(async () =>
+                    for (var i = 0; i < messageCount1; i++)
                     {
-                        for (var i = 0; i < messageCount1; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId1, streamNamespace, $"test:{streamId1}-{streamNamespace} message:{i}");
-                        }
-                    });
-                    var publishTask2 = Task.Factory.StartNew(async () =>
-                    {
-                        for (var i = 0; i < messageCount2; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId2, streamNamespace, $"test:{streamId2}-{streamNamespace} message:{i}");
-                        }
-                    });
-
-                    List<dynamic> items1 = null, items2 = null;
-                    using (var cts = GetTokenSource())
-                    {
-                        var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
-                        items1 = results[0];
-                        items2 = results[1];
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId1, streamNamespace, $"test:{streamId1}-{streamNamespace} message:{i}");
                     }
-
-                    // Wait a little longer just in case something else is published (which would be bad)
-                    await Task.Delay(100);
-
-                    Assert.Equal(messageCount1, items1.Count);
-                    Assert.Equal(messageCount2, items2.Count);
-
-                    AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>());
-                    AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>());
                 });
-            }
+                var publishTask2 = Task.Factory.StartNew(async () =>
+                {
+                    for (var i = 0; i < messageCount2; i++)
+                    {
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId2, streamNamespace, $"test:{streamId2}-{streamNamespace} message:{i}");
+                    }
+                });
+
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource())
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
+
+                // Wait a little longer just in case something else is published (which would be bad)
+                await Task.Delay(100);
+
+                Assert.Equal(messageCount1, items1.Count);
+                Assert.Equal(messageCount2, items2.Count);
+
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
+            });
         }
 
         [Theory]
@@ -111,50 +108,48 @@ namespace CoreTests.Integration
         public async Task TwoRedisStreamsWithSameStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
+                var streamId = Guid.NewGuid();
+
+                var streamNamespace1 = Guid.NewGuid().ToString();
+                var streamNamespace2 = Guid.NewGuid().ToString();
+
+                var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace1, messageCount1);
+                var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace2, messageCount2);
+
+                var publishTask1 = Task.Factory.StartNew(async () =>
                 {
-                    var streamId = Guid.NewGuid();
-
-                    var streamNamespace1 = Guid.NewGuid().ToString();
-                    var streamNamespace2 = Guid.NewGuid().ToString();
-
-                    var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace1, messageCount1);
-                    var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId, streamNamespace2, messageCount2);
-
-                    var publishTask1 = Task.Factory.StartNew(async () =>
+                    for (var i = 0; i < messageCount1; i++)
                     {
-                        for (var i = 0; i < messageCount1; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace1, $"test:{streamId}-{streamNamespace1} message:{i}");
-                        }
-                    });
-                    var publishTask2 = Task.Factory.StartNew(async () =>
-                    {
-                        for (var i = 0; i < messageCount2; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace2, $"test:{streamId}-{streamNamespace2} message:{i}");
-                        }
-                    });
-
-                    List<dynamic> items1 = null, items2 = null;
-                    using (var cts = GetTokenSource())
-                    {
-                        var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
-                        items1 = results[0];
-                        items2 = results[1];
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace1, $"test:{streamId}-{streamNamespace1} message:{i}");
                     }
-
-                    // Wait a little longer just in case something else is published (which would be bad)
-                    await Task.Delay(100);
-
-                    Assert.Equal(messageCount1, items1.Count);
-                    Assert.Equal(messageCount2, items2.Count);
-
-                    AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                    AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}"), items2.Cast<string>());
                 });
-            }
+                var publishTask2 = Task.Factory.StartNew(async () =>
+                {
+                    for (var i = 0; i < messageCount2; i++)
+                    {
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId, streamNamespace2, $"test:{streamId}-{streamNamespace2} message:{i}");
+                    }
+                });
+
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource())
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
+
+                // Wait a little longer just in case something else is published (which would be bad)
+                await Task.Delay(100);
+
+                Assert.Equal(messageCount1, items1.Count);
+                Assert.Equal(messageCount2, items2.Count);
+
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId}-{streamNamespace1} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId}-{streamNamespace2} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
+            });
         }
 
         [Theory]
@@ -163,51 +158,49 @@ namespace CoreTests.Integration
         public async Task TwoRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
+                var streamId1 = Guid.NewGuid();
+                var streamId2 = Guid.NewGuid();
+
+                var streamNamespace1 = Guid.NewGuid().ToString();
+                var streamNamespace2 = Guid.NewGuid().ToString();
+
+                var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId1, streamNamespace1, messageCount1);
+                var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId2, streamNamespace2, messageCount2);
+
+                var publishTask1 = Task.Factory.StartNew(async () =>
                 {
-                    var streamId1 = Guid.NewGuid();
-                    var streamId2 = Guid.NewGuid();
-
-                    var streamNamespace1 = Guid.NewGuid().ToString();
-                    var streamNamespace2 = Guid.NewGuid().ToString();
-
-                    var streamSubscriptionAwaiter1 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId1, streamNamespace1, messageCount1);
-                    var streamSubscriptionAwaiter2 = await clusterFixture.SubscribeAndGetTaskAwaiter<string>(StreamProviderName, streamId2, streamNamespace2, messageCount2);
-
-                    var publishTask1 = Task.Factory.StartNew(async () =>
+                    for (var i = 0; i < messageCount1; i++)
                     {
-                        for (var i = 0; i < messageCount1; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId1, streamNamespace1, $"test:{streamId1}-{streamNamespace1} message:{i}");
-                        }
-                    });
-                    var publishTask2 = Task.Factory.StartNew(async () =>
-                    {
-                        for (var i = 0; i < messageCount2; i++)
-                        {
-                            await clusterFixture.PublishToStream(StreamProviderName, streamId2, streamNamespace2, $"test:{streamId2}-{streamNamespace2} message:{i}");
-                        }
-                    });
-
-                    List<dynamic> items1 = null, items2 = null;
-                    using (var cts = GetTokenSource(TimeSpan.FromSeconds(messageCount1)))
-                    {
-                        var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
-                        items1 = results[0];
-                        items2 = results[1];
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId1, streamNamespace1, $"test:{streamId1}-{streamNamespace1} message:{i}");
                     }
-
-                    // Wait a little longer just in case something else is published (which would be bad)
-                    await Task.Delay(100);
-
-                    Assert.Equal(messageCount1, items1.Count);
-                    Assert.Equal(messageCount2, items2.Count);
-
-                    AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}"), items1.Cast<string>());
-                    AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}"), items2.Cast<string>());
                 });
-            }
+                var publishTask2 = Task.Factory.StartNew(async () =>
+                {
+                    for (var i = 0; i < messageCount2; i++)
+                    {
+                        await clusterFixture.PublishToStream(StreamProviderName, streamId2, streamNamespace2, $"test:{streamId2}-{streamNamespace2} message:{i}");
+                    }
+                });
+
+                List<dynamic> items1 = null, items2 = null;
+                using (var cts = GetTokenSource(TimeSpan.FromSeconds(messageCount1)))
+                {
+                    var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
+                    items1 = results[0];
+                    items2 = results[1];
+                }
+
+                // Wait a little longer just in case something else is published (which would be bad)
+                await Task.Delay(100);
+
+                Assert.Equal(messageCount1, items1.Count);
+                Assert.Equal(messageCount2, items2.Count);
+
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace1} message:{i}").OrderBy(x => x), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace2} message:{i}").OrderBy(x => x), items2.Cast<string>().OrderBy(x => x));
+            });
         }
 
         [Theory]
@@ -216,21 +209,19 @@ namespace CoreTests.Integration
         public async Task NRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int n, int messageCount)
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
+                var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, n, messageCount);
+
+                await Task.WhenAll(dataSets.Select(d => d.Awaiter));
+
+                foreach (var set in dataSets)
                 {
-                    var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, n, messageCount);
-
-                    await Task.WhenAll(dataSets.Select(d => d.Awaiter));
-
-                    foreach (var set in dataSets)
-                    {
-                        var items = await set.Awaiter;
-                        Assert.Equal(messageCount, items.Count);
-                        AssertEx.Equal(new object[messageCount].Select((_, i) => $"test:{set.StreamId}-{set.StreamNamespace} message:{i}"), items.Cast<string>());
-                    }
-                });
-            }
+                    var items = await set.Awaiter;
+                    Assert.Equal(messageCount, items.Count);
+                    AssertEx.Equal(new object[messageCount].Select((_, i) => $"test:{set.StreamId}-{set.StreamNamespace} message:{i}").OrderBy(x => x), items.Cast<string>().OrderBy(x => x));
+                }
+            });
         }
 
         private async Task<List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>> CreateProducerConsumerStreamAwaiter(BaseClusterFixture clusterFixture, int n, int messageCount)
@@ -262,37 +253,29 @@ namespace CoreTests.Integration
         public async Task OnlyOneConnectionMultiplexerIsCreated()
         {
             using (var clusterFixture = new StreamingClusterFixture())
+            await clusterFixture.Dispatch(async () =>
             {
-                await clusterFixture.Dispatch(async () =>
-                {
-                    // Make sure some producer/consumers are set up
-                    var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, 100, 10);
-                    await Task.WhenAll(dataSets.Select(d => d.Awaiter));
+                // Make sure some producer/consumers are set up
+                var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, 100, 10);
+                await Task.WhenAll(dataSets.Select(d => d.Awaiter));
 
-                    var connectionMultiplexerFactory = (CachedConnectionMultiplexerFactory)clusterFixture.ClusterServices.GetRequiredService<IConnectionMultiplexerFactory>();
-                    Assert.Single(connectionMultiplexerFactory.TestHook_ConnectionMultiplexers);
-                });
-            }
+                var connectionMultiplexerFactory = (CachedConnectionMultiplexerFactory)clusterFixture.ClusterServices.GetRequiredService<IConnectionMultiplexerFactory>();
+                Assert.Single(connectionMultiplexerFactory.TestHook_ConnectionMultiplexers);
+            });
         }
 
         [MockStreamStorage(StreamStorageName)]
         private class StreamingClusterFixture2 : StreamingClusterFixture
         {
-            protected override void OnConfigure(LocalClusterBuilder clusterBuilder)
-            {
-                clusterBuilder.ConfigureCluster(config => {
-                    config.Globals.ClusterId = "Some-Cluster-Id-2";
-                    config.Defaults.Port = 11112;
-                    config.Defaults.ProxyGatewayEndpoint.Port = 30001;
-                });
-                base.OnConfigure(clusterBuilder);
-            }
+            public StreamingClusterFixture2() : base("Some-Cluster-Id-2") { }
         }
 
         [MockStreamStorage(StreamStorageName)]
         private class StreamingClusterFixture : BaseClusterFixture
         {
             public const string LocalRedisConnectionString = "127.0.0.1:6379";
+
+            public StreamingClusterFixture(string clusterId = null) : base(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100, clusterId: clusterId) { }
 
             protected override void OnConfigure(ISiloHostBuilder siloHostBuilder)
             {
