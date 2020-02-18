@@ -1,4 +1,4 @@
-﻿using Orleans.Hosting;
+using Orleans.Hosting;
 using Serilog;
 using System;
 using System.Threading.Tasks;
@@ -98,8 +98,8 @@ namespace CoreTests.Integration
                 Assert.Equal(messageCount1, items1.Count);
                 Assert.Equal(messageCount2, items2.Count);
 
-                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>());
-                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>());
+                AssertEx.Equal(new object[messageCount1].Select((_, i) => $"test:{streamId1}-{streamNamespace} message:{i}"), items1.Cast<string>().OrderBy(x => x));
+                AssertEx.Equal(new object[messageCount2].Select((_, i) => $"test:{streamId2}-{streamNamespace} message:{i}"), items2.Cast<string>().OrderBy(x => x));
             });
         }
 
