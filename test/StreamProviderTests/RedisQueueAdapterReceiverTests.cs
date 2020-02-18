@@ -74,11 +74,5 @@ namespace StreamingTests
 
             await AssertEx.ThrowsAnyAsync<OperationCanceledException>(() => rqar.Shutdown(TimeSpan.FromMilliseconds(0)));
         }
-
-        [Fact(Skip = "Incomplete")]
-        public Task GetQueueMessagesAsyncReturnsPublishedMessages()
-        {
-            return Task.CompletedTask;
-        }
     }
 }

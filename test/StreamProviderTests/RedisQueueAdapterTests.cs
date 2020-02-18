@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using Newtonsoft.Json;
 using Orleans.Configuration;
 using Orleans.Providers.Streams.Common;
@@ -52,7 +52,7 @@ namespace StreamingTests
         [Fact]
         public void NullServiceIdParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
             () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, null, null, null), e => e.ParamName == "serviceId");
-        
+
         [Fact]
         public void NullClusterIdParamThrowsInConstructor() => AssertEx.ThrowsAny<ArgumentNullException>(
             () => new RedisQueueAdapter(ValidRedisStreamOptions, CachedConnectionMultiplexerFactory.Default, Mock.Of<IRedisDataAdapter>(), Mock.Of<IStreamQueueMapper>(), null, ValidServiceId, null, null), e => e.ParamName == "clusterId");

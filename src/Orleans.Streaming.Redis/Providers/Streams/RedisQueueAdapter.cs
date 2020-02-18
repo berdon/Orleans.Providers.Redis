@@ -1,4 +1,4 @@
-﻿using Orleans.Configuration;
+using Orleans.Configuration;
 using Orleans.Redis.Common;
 using Orleans.Streaming.Redis.Storage;
 using Orleans.Streams;
@@ -54,7 +54,11 @@ namespace Orleans.Providers.Streams.Redis
             Name = providerName;
             _streamQueueMapper = streamQueueMapper;
             _dataAdapter = dataAdapter;
-            _logger = logger.ForContext<RedisQueueAdapter>();
+            _logger = logger.ForContext<RedisQueueAdapter>(new Dictionary<string, object>
+            {
+                { "ServiceId", serviceId },
+                { "ProviderName", providerName }
+            });
         }
 
         public IQueueAdapterReceiver CreateReceiver(QueueId queueId)
@@ -80,6 +84,8 @@ namespace Orleans.Providers.Streams.Redis
 
             if (!Queues.TryGetValue(queueId, out var queue))
             {
+                _logger.Debug("Creating RedisDataManager {QueueId} for {StreamNamespace}://{StreamId}", queueId.ToString(), streamNamespace, streamGuid);
+
                 var tmpQueue = new RedisDataManager(_redisStreamOptions, _connectionMultiplexerFactory, _logger, queueId.ToString(), ServiceId, ClusterId);
                 await tmpQueue.InitAsync();
                 queue = Queues.GetOrAdd(queueId, tmpQueue);

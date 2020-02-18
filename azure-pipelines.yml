@@ -13,7 +13,7 @@ jobs:
   - script: docker run -d --name test-redis --rm -p 6379:6379 redis
     displayName: 'Start Redis docker container for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v $(Debug.VerboseLevel) --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
@@ -42,7 +42,7 @@ jobs:
       start "redis" redis-server
     displayName: 'Install and run Redis for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v $(Debug.VerboseLevel) --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
@@ -72,7 +72,7 @@ jobs:
       brew services start redis
     displayName: 'Install and run Redis for tests'
 
-  - script: dotnet test --logger trx
+  - script: dotnet test -v $(Debug.VerboseLevel) --logger trx
     displayName: 'Run automated tests'
     continueOnError: true
 
@@ -88,6 +88,16 @@ jobs:
     displayName: 'Cleanup Redis'
 
 - job: Publish
+  condition: |
+    and(
+      succeeded(),
+      or(
+        eq(variables['Publish.Force'], 'true'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/release')
+      )
+    )
+
   dependsOn:
   - Linux
   - Windows
@@ -101,16 +111,36 @@ jobs:
     displayName: 'Restoring Packages'
 
   - script: dotnet build --configuration Debug --version-suffix $(Build.BuildNumber)
-    condition: ne(variables['Build.SourceBranch'], 'refs/heads/release')
+    condition: |
+      or(
+        and(
+          eq(variables['Publish.Force'], 'false'),
+          ne(variables['Build.SourceBranch'], 'refs/heads/release')
+        ),
+        and(
+          eq(variables['Publish.Force'], 'true'),
+          eq(variables['Publish.Target'], 'ci')
+        )
+      )
     displayName: 'Building'
 
   - script: dotnet build --configuration Release
-    condition: eq(variables['Build.SourceBranch'], 'refs/heads/release')
+    condition: |
+      or(
+        and(
+          eq(variables['Publish.Force'], 'false'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/release')
+        ),
+        and(
+          eq(variables['Publish.Force'], 'true'),
+          eq(variables['Publish.Target'], 'release')
+        )
+      )
     displayName: 'Building (Release)'
 
   - task: NuGetCommand@2
     displayName: 'Publishing Build'
-    condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq(variables['Build.SourceBranch'], 'refs/heads/release')))
+    condition: succeeded()
     inputs:
       command: push
       nuGetFeedType: external

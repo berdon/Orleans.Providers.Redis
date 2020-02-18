@@ -1,4 +1,4 @@
-﻿using Orleans.Redis.Common;
+using Orleans.Redis.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using Serilog.Events;
 
 namespace Orleans.Storage
 {
@@ -82,7 +83,6 @@ namespace Orleans.Storage
         private async Task<object> ReadStateFromRedisAsync(string key, Type type)
         {
             return await Task.Run(() => _redisClient.GetObject(_serializationManager, key, type));
-
         }
 
         public async Task WriteStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
@@ -95,7 +95,7 @@ namespace Orleans.Storage
 
                 if (storedState != null)
                 {
-                    await ValidateETag(grainState.ETag, storedState, stateType);
+                    await ValidateETag(grainState.ETag, storedState, stateType, grainReference);
                 }
 
                 await Task.Run(() => _redisClient.StoreObject(_serializationManager, grainState.State, stateType, key));
@@ -134,7 +134,7 @@ namespace Orleans.Storage
         /// <summary>
         /// Throws InconsistentStateException if ETags don't match up.
         /// </summary>
-        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType)
+        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType, GrainReference reference)
         {
             var storedETag = GenerateETag(storedDocument, typeof(T));
             if (storedETag != currentETag)
@@ -145,7 +145,10 @@ namespace Orleans.Storage
                         $"Inconsistent state detected while performing write operations for type:{stateType.Name}.", storedETag, currentETag);
                 }
 
-                _logger.Warning("Inconsistent state detected while performing write operations for type:{typeof(T).Name}.", stateType.Name);
+                _logger.Warning(
+                    "Inconsistent state detected while performing write operations for type:{typeof(T).Name} for {GrainReference}.",
+                    stateType.Name,
+                    reference.ToKeyString());
             }
 
             return Task.CompletedTask;
