@@ -44,7 +44,7 @@
     <Newtonsoft_Json>10.0.3</Newtonsoft_Json>
     <Nito_AsyncEx_Tasks>5.0.0-pre-02</Nito_AsyncEx_Tasks>
     <Serilog>2.7.1</Serilog>
-    <StackExchange_Redis>2.0.513</StackExchange_Redis>
+    <StackExchange_Redis>2.0.601</StackExchange_Redis>
     <xunit>2.3.1</xunit>
     <xunit_categories>2.0.3</xunit_categories>
     <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
