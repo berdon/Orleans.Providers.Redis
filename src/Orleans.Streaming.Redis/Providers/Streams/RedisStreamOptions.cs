@@ -1,4 +1,4 @@
-﻿using Orleans.Runtime;
+using Orleans.Runtime;
 using System;
 
 namespace Orleans.Configuration
@@ -16,8 +16,15 @@ namespace Orleans.Configuration
         /// </summary>
         public int QueueCacheSize { get; set; } = 1000;
 
-        public PersistenceLifetime PersistenceLifetime { get;set; } = DEFAULT_PERSISTENCE_LIFETIME;
-
+        /// <summary>
+        /// <para>
+        /// Whether stream messages should use the same pipeline across
+        /// deployments or should be separate between deployments.
+        /// </para>
+        /// Defaults to true
+        /// </summary>
+        public PersistenceLifetime PersistenceLifetime { get; set; } = DEFAULT_PERSISTENCE_LIFETIME;
+        
         /// <summary>
         /// Dictates how stream pubsub channels are named. In nearly all normal situations this
         /// should probably be PersistenceLifetime.ClusterLifetime.

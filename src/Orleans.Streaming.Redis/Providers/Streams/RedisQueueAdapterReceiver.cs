@@ -6,6 +6,7 @@ using Serilog;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -55,7 +56,10 @@ namespace Orleans.Providers.Streams.Redis
             Id = queueId;
             _queue = queue ?? throw new ArgumentNullException(nameof(queue));
             _dataAdapter = dataAdapter;
-            _logger = logger.ForContext<RedisQueueAdapterReceiver>();
+            _logger = logger.ForContext<RedisQueueAdapterReceiver>(new Dictionary<string, object>
+            {
+                { "QueueId", queueId.ToString() }
+            });
         }
 
         public async Task Initialize(TimeSpan timeout)
@@ -121,14 +125,23 @@ namespace Orleans.Providers.Streams.Redis
                 _outstandingTask = task;
                 IEnumerable<RedisValue> messages = await task;
 
-                List<IBatchContainer> RedisMessages = new List<IBatchContainer>();
+                List<IBatchContainer> redisMessages = new List<IBatchContainer>();
                 foreach (var message in messages)
                 {
                     IBatchContainer container = _dataAdapter.FromRedisValue(message, _lastReadMessage++);
-                    RedisMessages.Add(container);
+                    redisMessages.Add(container);
                 }
 
-                return RedisMessages;
+                if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+                {
+                    var namespaces = redisMessages.GroupBy(x => x.StreamNamespace);
+                    foreach (var group in namespaces)
+                    {
+                        _logger.Debug("Received {Count} messages for {StreamNamespace}://***", group.Count(), group.Key);
+                    }
+                }
+
+                return redisMessages;
             }
             finally
             {
@@ -138,15 +151,6 @@ namespace Orleans.Providers.Streams.Redis
 
         public Task MessagesDeliveredAsync(IList<IBatchContainer> messages)
         {
-            // No op for now as redis really isn't a persistent queue :/
-            if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
-            {
-                foreach (var m in messages)
-                {
-                    _logger.Verbose("{SequenceId} delivered", m.SequenceToken);
-                }
-            }
-
             return Task.CompletedTask;
         }
     }
