@@ -1,25 +1,20 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Nito.AsyncEx;
+using Orleans.Configuration;
 using Orleans.Hosting;
+using Orleans.Redis.Common;
+using Orleans.Testing.Utils;
 using Serilog;
+using Shared;
+using Shared.Orleans;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Orleans.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Orleans.Runtime;
-using Orleans.Providers;
-using Orleans.Storage;
-using StackExchange.Redis;
-using SharedOrleansUtils;
-using Nito.AsyncEx;
-using System.Threading;
 using Xunit.Categories;
-using Shared;
-using Orleans.Redis.Common;
-using System.Collections.Generic;
-using Bogus;
-using Shared.Orleans;
 
 namespace CoreTests.Integration
 {
@@ -38,7 +33,10 @@ namespace CoreTests.Integration
         [Fact]
         public async Task RedisStreamCanSendAndReceiveItem()
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 var streamId = Guid.NewGuid();
@@ -58,7 +56,10 @@ namespace CoreTests.Integration
         [InlineData(10, 10)]
         public async Task TwoRedisStreamsWithDifferentStreamIdsOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+            
             await clusterFixture.Dispatch(async () =>
             {
                 var streamId1 = Guid.NewGuid();
@@ -108,7 +109,10 @@ namespace CoreTests.Integration
         [InlineData(10, 10)]
         public async Task TwoRedisStreamsWithSameStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 var streamId = Guid.NewGuid();
@@ -158,7 +162,10 @@ namespace CoreTests.Integration
         [InlineData(100, 100)]
         public async Task TwoRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int messageCount1, int messageCount2)
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 var streamId1 = Guid.NewGuid();
@@ -209,7 +216,10 @@ namespace CoreTests.Integration
         [InlineData(100, 10)]
         public async Task NRedisStreamsWithDifferentStreamIdsAndDifferentStreamNamespacesOnlyReceiveTheirOwnMessages(int n, int messageCount)
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+            
             await clusterFixture.Dispatch(async () =>
             {
                 var dataSets = await CreateProducerConsumerStreamAwaiter(clusterFixture, n, messageCount);
@@ -225,7 +235,7 @@ namespace CoreTests.Integration
             });
         }
 
-        private async Task<List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>> CreateProducerConsumerStreamAwaiter(BaseClusterFixture clusterFixture, int n, int messageCount)
+        private async Task<List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>> CreateProducerConsumerStreamAwaiter(ClusterFixture clusterFixture, int n, int messageCount)
         {
             var dataSets = new List<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)>();
             for (var i = 0; i < n; i++)
@@ -235,7 +245,7 @@ namespace CoreTests.Integration
             return dataSets;
         }
 
-        private async Task<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)> CreateProducerConsumerStreamAwaiter(BaseClusterFixture clusterFixture, int messageCount)
+        private async Task<(Guid StreamId, string StreamNamespace, Task<List<dynamic>> Awaiter)> CreateProducerConsumerStreamAwaiter(ClusterFixture clusterFixture, int messageCount)
         {
             var streamId = Guid.NewGuid();
             var streamNamespace = Guid.NewGuid().ToString();
@@ -253,7 +263,10 @@ namespace CoreTests.Integration
         [Fact]
         public async Task OnlyOneConnectionMultiplexerIsCreated()
         {
-            using (var clusterFixture = new StreamingClusterFixture())
+            var clusterFixture = new StreamingClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 // Make sure some producer/consumers are set up
@@ -266,12 +279,14 @@ namespace CoreTests.Integration
         }
 
         [MockStreamStorage(StreamStorageName)]
-        private class StreamingClusterFixture : BaseClusterFixture
+        private class StreamingClusterFixture : ClusterFixture
         {
             public const string LocalRedisConnectionString = "127.0.0.1:6379";
-
-            public StreamingClusterFixture() : base(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100) { }
-
+            
+            public async Task Start()
+            {
+                await Start(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100);
+            }
             protected override void OnConfigure(ISiloHostBuilder siloHostBuilder)
             {
                 base.OnConfigure(siloHostBuilder);

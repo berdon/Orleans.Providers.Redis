@@ -1,15 +1,16 @@
-﻿using Orleans.Redis.Common;
+using Orleans.Redis.Common;
 using StackExchange.Redis;
 using System;
+using System.Threading.Tasks;
 
 namespace Orleans.Persistence.Redis.Extensions
 {
     internal static class StackExchangeRedisExtension
     {
         #region String helpers
-        public static T GetObject<T>(this IDatabase redisClient, ISerializationManager serializationManager, string objectId)
+        public static async Task<T> GetObjectAsync<T>(this IDatabase redisClient, ISerializationManager serializationManager, string objectId)
         {
-            var value = redisClient.StringGet(CreateUrn<T>(objectId));
+            var value = await redisClient.StringGetAsync(CreateUrn<T>(objectId));
             if (value.HasValue)
             {
                 //Do special things here to handle versions in JSON.
@@ -19,9 +20,9 @@ namespace Orleans.Persistence.Redis.Extensions
             return default;
         }
 
-        public static object GetObject(this IDatabase redisClient, ISerializationManager serializationManager, string objectId, Type type)
+        public static async Task<object> GetObjectAsync(this IDatabase redisClient, ISerializationManager serializationManager, string objectId, Type type)
         {
-            var value = redisClient.StringGet(CreateUrn(objectId, type));
+            var value = await redisClient.StringGetAsync(CreateUrn(objectId, type));
             if (value.HasValue)
             {
                 //Do special things here to handle versions in JSON.
@@ -31,36 +32,36 @@ namespace Orleans.Persistence.Redis.Extensions
             return default;
         }
 
-        public static void StoreObject<T>(this IDatabase redisClient, ISerializationManager serializationManager, T value, string objectId, DateTime? expireTime = null)
+        public static async Task StoreObjectAsync<T>(this IDatabase redisClient, ISerializationManager serializationManager, T value, string objectId, DateTime? expireTime = null)
         {
             string key = CreateUrn<T>(objectId);
             var data = serializationManager.SerializeToByteArray(value);
-            redisClient.StringSet(key, data);
+            await redisClient.StringSetAsync(key, data);
             if (expireTime.HasValue)
             {
-                redisClient.KeyExpire(key, expireTime);
+                await redisClient.KeyExpireAsync(key, expireTime);
             }
         }
 
-        public static void StoreObject(this IDatabase redisClient, ISerializationManager serializationManager, object value, Type type, string objectId, DateTime? expireTime = null)
+        public static async Task StoreObjectAsync(this IDatabase redisClient, ISerializationManager serializationManager, object value, Type type, string objectId, DateTime? expireTime = null)
         {
             string key = CreateUrn(objectId, type);
             var data = serializationManager.SerializeToByteArray(value);
-            redisClient.StringSet(key, data);
+            await redisClient.StringSetAsync(key, data);
             if (expireTime.HasValue)
             {
-                redisClient.KeyExpire(key, expireTime);
+                await redisClient.KeyExpireAsync(key, expireTime);
             }
         }
 
-        public static void DeleteObject<T>(this IDatabase redisClient, string objectId)
+        public static async Task DeleteObjectAsync<T>(this IDatabase redisClient, string objectId)
         {
-            redisClient.KeyDelete(CreateUrn<T>(objectId));
+            await redisClient.KeyDeleteAsync(CreateUrn<T>(objectId));
         }
 
-        public static void DeleteObject(this IDatabase redisClient, Type type, string objectId)
+        public static async Task DeleteObjectAsync(this IDatabase redisClient, Type type, string objectId)
         {
-            redisClient.KeyDelete(CreateUrn(objectId, type));
+            await redisClient.KeyDeleteAsync(CreateUrn(objectId, type));
         }
 
         #endregion

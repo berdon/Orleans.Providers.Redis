@@ -1,9 +1,5 @@
-﻿using Orleans.Configuration;
-using Orleans.Hosting;
-using Orleans.Streaming;
+﻿using Orleans.Streaming;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Orleans.Hosting
 {
@@ -14,7 +10,11 @@ namespace Orleans.Hosting
         /// </summary>
         public static ISiloHostBuilder AddRedisStreams(this ISiloHostBuilder builder, string name, Action<SiloRedisStreamConfigurator> configure)
         {
-            var configurator = new SiloRedisStreamConfigurator(name, builder);
+            var configurator = new SiloRedisStreamConfigurator(
+                name,
+                x => builder.ConfigureServices(x),
+                x => builder.ConfigureApplicationParts(x));
+
             configure?.Invoke(configurator);
             return builder;
         }

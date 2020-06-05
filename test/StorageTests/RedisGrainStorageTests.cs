@@ -2,16 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
 using Orleans;
-using Orleans.Configuration;
 using Orleans.Hosting;
 using Orleans.Providers;
 using Orleans.Redis.Common;
-using Orleans.Runtime;
-using Orleans.Storage;
 using Orleans.Streams;
+using Orleans.Testing.Utils;
 using Serilog;
 using Shared.Orleans;
-using SharedOrleansUtils;
 using StackExchange.Redis;
 using StorageTests.GrainInterfaces;
 using System;
@@ -38,7 +35,10 @@ namespace StorageTests
         [Fact]
         public async Task SubscribedGrainStillSubscribedAfterDeactivation()
         {
-            using (var clusterFixture = new ClusterFixture())
+            var clusterFixture = new ClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 var grain = clusterFixture.GrainFactory.GetGrain<ITestGrain>(Guid.Empty);
@@ -55,7 +55,10 @@ namespace StorageTests
         [Fact(Skip = "Incomplete")]
         public async Task SubscribeCallToGrainCallsRedisStringSet()
         {
-            using (var clusterFixture = new ClusterFixture())
+            var clusterFixture = new ClusterFixture();
+            await clusterFixture.Start();
+            using (clusterFixture)
+
             await clusterFixture.Dispatch(async () =>
             {
                 var writeSemaphore = new SemaphoreSlim(0);
@@ -144,12 +147,15 @@ namespace StorageTests
 
         [MockStorageProvider(ProviderConstants.DEFAULT_STORAGE_PROVIDER_NAME)]
         [MockStreamProvider(StreamProviderName)]
-        public class ClusterFixture : BaseClusterFixture
+        public class ClusterFixture : Orleans.Testing.Utils.ClusterFixture
         {
             public Mock<IDatabase> Redis { get; } = new Mock<IDatabase>();
             public Mock<ILogger> Serilog { get; } = new Mock<ILogger>();
 
-            public ClusterFixture() : base(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100) { }
+            public async Task Start()
+            {
+                await Start(11111 + Testing.TestIndex % 100, 30000 + Testing.TestIndex % 100);
+            }
 
             protected override void OnConfigure(LocalClusterBuilder clusterBuilder)
             {
