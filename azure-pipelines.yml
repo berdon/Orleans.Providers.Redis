@@ -1,9 +1,17 @@
+variables:
+  dotnet.version: 3.x
+
 jobs:
 - job: Linux
   pool:
     vmImage: 'Ubuntu 16.04'
 
   steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: $(dotnet.version)
+
   - script: dotnet restore
     displayName: 'Restore dependencies'
 
@@ -31,6 +39,11 @@ jobs:
     vmImage: 'vs2017-win2016'
 
   steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: $(dotnet.version)
+
   - script: dotnet restore
     displayName: 'Restore dependencies'
 
@@ -58,9 +71,14 @@ jobs:
     displayName: 'Cleanup Redis'
 - job: macOS
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macOS-10.14'
 
   steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: $(dotnet.version)
+
   - script: dotnet restore
     displayName: 'Restore dependencies'
 
