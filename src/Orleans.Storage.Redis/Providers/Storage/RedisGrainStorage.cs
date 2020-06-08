@@ -97,7 +97,7 @@ namespace Orleans.Storage
                 {
                     await ValidateETag(grainState.ETag, storedState, stateType, grainReference);
                 }
-                
+
                 await _redisClient.StoreObjectAsync(_serializationManager, grainState.State, stateType, key);
                 grainState.ETag = GenerateETag(grainState.State, stateType);
             }
