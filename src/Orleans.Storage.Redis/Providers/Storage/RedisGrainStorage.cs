@@ -82,7 +82,7 @@ namespace Orleans.Storage
 
         private async Task<object> ReadStateFromRedisAsync(string key, Type type)
         {
-            return await Task.Run(() => _redisClient.GetObject(_serializationManager, key, type));
+            return await _redisClient.GetObjectAsync(_serializationManager, key, type);
         }
 
         public async Task WriteStateAsync(string grainType, GrainReference grainReference, IGrainState grainState)
@@ -98,7 +98,7 @@ namespace Orleans.Storage
                     await ValidateETag(grainState.ETag, storedState, stateType, grainReference);
                 }
 
-                await Task.Run(() => _redisClient.StoreObject(_serializationManager, grainState.State, stateType, key));
+                await _redisClient.StoreObjectAsync(_serializationManager, grainState.State, stateType, key);
                 grainState.ETag = GenerateETag(grainState.State, stateType);
             }
             catch (Exception e)
@@ -113,7 +113,7 @@ namespace Orleans.Storage
             {
                 string key = DetermineRedisKey(grainType, grainReference);
                 var stateType = grainState.State.GetType();
-                await Task.Run(() => _redisClient.DeleteObject(stateType, key));
+                await _redisClient.DeleteObjectAsync(stateType, key);
                 grainState.ETag = null;
             }
             catch (Exception e)
