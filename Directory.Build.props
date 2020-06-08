@@ -17,13 +17,18 @@
   <!-- Versioning properties -->
   <PropertyGroup>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">2.1.4</VersionPrefix>
+    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">3.1.7</VersionPrefix>
   </PropertyGroup>
 
   <!-- For Debug builds generated a date/time dependent version suffix -->
   <PropertyGroup Condition=" '$(Configuration)'=='Debug' ">
     <VersionSuffix Condition=" '$(VersionSuffix)'=='' ">dev</VersionSuffix>
     <VersionSuffix Condition=" '$(VersionDateSuffix)'!='' ">$(VersionSuffix)-$(VersionDateSuffix)</VersionSuffix>
+  </PropertyGroup>
+
+  <!-- For debugging test utils -->
+  <PropertyGroup>
+    <Orleans_Testing_Utils_Src></Orleans_Testing_Utils_Src>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -45,6 +50,6 @@
     <xunit_categories>2.0.3</xunit_categories>
     <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
     <xunit>2.3.1</xunit>
-    <Zuercher_Orleans_Testing_Utils>2.1.1</Zuercher_Orleans_Testing_Utils>
+    <Zuercher_Orleans_Testing_Utils>3.1.7</Zuercher_Orleans_Testing_Utils>
   </PropertyGroup>
 </Project>
