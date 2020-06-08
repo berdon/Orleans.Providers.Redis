@@ -1,4 +1,10 @@
 <Project DefaultTargets="Build">
+  <!-- Target frameworks -->
+  <PropertyGroup>
+    <TargetFrameworkNetStandard>netstandard2.0</TargetFrameworkNetStandard>
+    <TargetFrameworkNetCoreApp>netcoreapp3.1</TargetFrameworkNetCoreApp>
+  </PropertyGroup>
+
   <!-- Allow for skipping non-test projects -->
   <Target Name="VSTestIfTestProject">
     <CallTarget Targets="VSTest" Condition="'$(IsTestProject)' == 'true'" />
@@ -17,7 +23,7 @@
   <!-- Versioning properties -->
   <PropertyGroup>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">3.1.7</VersionPrefix>
+    <VersionPrefix Condition=" '$(VersionPrefix)'=='' ">3.2.0</VersionPrefix>
   </PropertyGroup>
 
   <!-- For Debug builds generated a date/time dependent version suffix -->
@@ -37,11 +43,11 @@
     <FluentAssertions>4.19.4</FluentAssertions>
     <Microsoft_Extensions_DependencyInjection>3.0.0</Microsoft_Extensions_DependencyInjection>
     <Microsoft_NET_Test_Sdk>15.6.0</Microsoft_NET_Test_Sdk>
-    <Microsoft_Orleans_Client>3.1.7</Microsoft_Orleans_Client>
-    <Microsoft_Orleans_CodeGenerator_MSBuild>3.1.7</Microsoft_Orleans_CodeGenerator_MSBuild>
-    <Microsoft_Orleans_Core>3.1.7</Microsoft_Orleans_Core>
-    <Microsoft_Orleans_Runtime>3.1.7</Microsoft_Orleans_Runtime>
-    <Microsoft_Orleans_Server>3.1.7</Microsoft_Orleans_Server>
+    <Microsoft_Orleans_Client>3.2.0</Microsoft_Orleans_Client>
+    <Microsoft_Orleans_CodeGenerator_MSBuild>3.2.0</Microsoft_Orleans_CodeGenerator_MSBuild>
+    <Microsoft_Orleans_Core>3.2.0</Microsoft_Orleans_Core>
+    <Microsoft_Orleans_Runtime>3.2.0</Microsoft_Orleans_Runtime>
+    <Microsoft_Orleans_Server>3.2.0</Microsoft_Orleans_Server>
     <Moq>4.9.0</Moq>
     <Newtonsoft_Json>10.0.3</Newtonsoft_Json>
     <Nito_AsyncEx_Tasks>5.0.0-pre-02</Nito_AsyncEx_Tasks>
@@ -50,6 +56,6 @@
     <xunit_categories>2.0.3</xunit_categories>
     <xunit_runner_visualstudio>2.3.1</xunit_runner_visualstudio>
     <xunit>2.3.1</xunit>
-    <Zuercher_Orleans_Testing_Utils>3.1.7</Zuercher_Orleans_Testing_Utils>
+    <Zuercher_Orleans_Testing_Utils>3.2.0</Zuercher_Orleans_Testing_Utils>
   </PropertyGroup>
 </Project>
