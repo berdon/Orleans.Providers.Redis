@@ -1,4 +1,10 @@
 <Project DefaultTargets="Build">
+  <!-- Target frameworks -->
+  <PropertyGroup>
+    <TargetFrameworkNetStandard>netstandard2.0</TargetFrameworkNetStandard>
+    <TargetFrameworkNetCoreApp>netcoreapp3.1</TargetFrameworkNetCoreApp>
+  </PropertyGroup>
+
   <!-- Allow for skipping non-test projects -->
   <Target Name="VSTestIfTestProject">
     <CallTarget Targets="VSTest" Condition="'$(IsTestProject)' == 'true'" />
