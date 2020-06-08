@@ -41,7 +41,7 @@ namespace CoreTests
                 .Returns(mockSiloHostBuilder.Object);
 
             // Create the stream configurator
-            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, mockSiloHostBuilder.Object);
+            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, x => mockSiloHostBuilder.Object.ConfigureServices(x), x => mockSiloHostBuilder.Object.ConfigureApplicationParts(x));
 
             // Override the normal multiplexer dependency factory
             serviceCollection.AddSingleton(new Mock<IConnectionMultiplexer>() { DefaultValue = DefaultValue.Mock }.Object);
@@ -77,7 +77,7 @@ namespace CoreTests
                 .Returns(mockSiloHostBuilder.Object);
 
             // Create the stream configurator
-            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, mockSiloHostBuilder.Object);
+            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, x => mockSiloHostBuilder.Object.ConfigureServices(x), x => mockSiloHostBuilder.Object.ConfigureApplicationParts(x));
 
             // Override the normal multiplexer dependency factory
             serviceCollection.AddSingleton(new Mock<IConnectionMultiplexer>() { DefaultValue = DefaultValue.Mock }.Object);
@@ -108,7 +108,7 @@ namespace CoreTests
                 .Returns(mockSiloHostBuilder.Object);
 
             // Create the actual stream configurator
-            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, mockSiloHostBuilder.Object);
+            var siloStreamConfigurator = new SiloRedisStreamConfigurator(MockStreamProviderName, x => mockSiloHostBuilder.Object.ConfigureServices(x), x => mockSiloHostBuilder.Object.ConfigureApplicationParts(x));
 
             // Override some required dependencies so mocks work
             serviceCollection.AddSingleton(Mock.Of<ISerializationManager>());

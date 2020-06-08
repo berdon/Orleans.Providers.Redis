@@ -17,20 +17,24 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(Microsoft_NET_Test_Sdk)" />
     <PackageReference Include="Microsoft.Orleans.Core" Version="$(Microsoft_Orleans_Core)" />
     <PackageReference Include="Microsoft.Orleans.OrleansCodeGenerator" Version="$(Microsoft_Orleans_Core)" />
-    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="$(Microsoft_Orleans_Core)">
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="$(Microsoft_Orleans_CodeGenerator_MSBuild)">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Orleans.Server" Version="$(Microsoft_Orleans_Server)" />
-    <PackageReference Include="Microsoft.Orleans.TestingHost" Version="$(Microsoft_Orleans_TestingHost)" />
     <PackageReference Include="Moq" Version="$(Moq)" />
     <PackageReference Include="Serilog" Version="$(Serilog)" />
     <PackageReference Include="StackExchange.Redis" Version="$(StackExchange_Redis)" />
     <PackageReference Include="xunit" Version="$(xunit)" />
     <PackageReference Include="xunit.categories" Version="$(xunit_categories)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(xunit_runner_visualstudio)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Orleans_Testing_Utils_Src)'==''">
     <PackageReference Include="Zuercher.Orleans.Testing.Utils" Version="$(Zuercher_Orleans_Testing_Utils)" />
-    <DotNetCliToolReference Include="dotnet-xunit" Version="$(dotnet_xunit)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Orleans_Testing_Utils_Src)'!=''">
+    <ProjectReference Include="$(Orleans_Testing_Utils_Src)/src/Orleans.Testing.Utils/Orleans.Testing.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28016.0
@@ -46,8 +46,8 @@ Global
 		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Test|Any CPU.ActiveCfg = Debug|Any CPU
-		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Test|Any CPU.Build.0 = Debug|Any CPU
+		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Test|Any CPU.ActiveCfg = Test|Any CPU
+		{0E16DE16-EFEC-4780-AAC2-B90D83CBC3DC}.Test|Any CPU.Build.0 = Test|Any CPU
 		{2E425139-CBEF-431D-84AC-708762032BE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2E425139-CBEF-431D-84AC-708762032BE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E425139-CBEF-431D-84AC-708762032BE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
