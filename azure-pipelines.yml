@@ -58,7 +58,7 @@ jobs:
     displayName: 'Cleanup Redis'
 - job: macOS
   pool:
-    vmImage: 'macOS-10.13'
+    vmImage: 'macOS-10.14'
 
   steps:
   - script: dotnet restore
