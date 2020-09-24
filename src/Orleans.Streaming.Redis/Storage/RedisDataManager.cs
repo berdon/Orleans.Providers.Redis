@@ -71,7 +71,7 @@ namespace Orleans.Streaming.Redis.Storage
 
                 _logger.Debug("Initializing RedisDataManager with {QueueCacheSize} and connecting to {ConnectionString}", _options.QueueCacheSize, _options.ConnectionString);
 
-                _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
+                _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ToConfigString());
 
                 if (ct.IsCancellationRequested) throw new TaskCanceledException();
             }

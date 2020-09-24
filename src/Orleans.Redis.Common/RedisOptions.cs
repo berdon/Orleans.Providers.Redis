@@ -7,5 +7,10 @@ namespace Orleans.Configuration
     public class RedisOptions
     {
         public string ConnectionString { get; set; }
+        public int SyncTimeout { get; set; } = 5000;
+        public string ToConfigString()
+        {
+            return $"{ConnectionString},syncTimeout={SyncTimeout}";
+        }
     }
 }

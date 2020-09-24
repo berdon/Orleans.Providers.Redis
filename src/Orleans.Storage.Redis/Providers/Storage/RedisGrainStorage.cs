@@ -49,10 +49,10 @@ namespace Orleans.Storage
             _clusterOptions = clusterOptions.Value;
             _connectionMultiplexerFactory = connectionMultiplexerFactory;
         }
-
+        
         public async Task Init(CancellationToken ct)
         {
-            _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ConnectionString);
+            _connectionMultiplexer = await _connectionMultiplexerFactory.CreateAsync(_options.ToConfigString());
         }
 
         public Task Close(CancellationToken ct)
