@@ -15,6 +15,12 @@ namespace Orleans.Configuration
         public const PersistenceLifetime DEFAULT_PERSISTENCE_LIFETIME = PersistenceLifetime.ServiceLifetime;
 
         public bool ThrowExceptionOnInconsistentETag { get; set; } = true;
+
+        /// <summary>
+        /// Rethrow exceptions that occur during Read/Write/Clear operations. The default behavior is to not
+        /// rethrow.
+        /// </summary>
+        public bool RethrowExceptions { get; set; } = false;
     }
 
     public class RedisGrainStorageOptionsValidator : IConfigurationValidator
