@@ -76,7 +76,8 @@ namespace Orleans.Storage
             }
             catch (Exception e)
             {
-                _logger.Error(e, e.Message);
+                GetGrainContextedLogger(grainType, grainReference, grainState).Error(e, e.Message);
+                if (_options.RethrowExceptions) throw;
             }
         }
 
@@ -95,7 +96,7 @@ namespace Orleans.Storage
 
                 if (storedState != null)
                 {
-                    await ValidateETag(grainState.ETag, storedState, stateType, grainReference);
+                    await ValidateETag(grainType, grainState, storedState, stateType, grainReference);
                 }
 
                 await _redisClient.StoreObjectAsync(_serializationManager, grainState.State, stateType, key);
@@ -103,7 +104,8 @@ namespace Orleans.Storage
             }
             catch (Exception e)
             {
-                _logger.Error(e, e.Message);
+                GetGrainContextedLogger(grainType, grainReference, grainState).Error(e, e.Message);
+                if (_options.RethrowExceptions) throw;
             }
         }
 
@@ -118,7 +120,8 @@ namespace Orleans.Storage
             }
             catch (Exception e)
             {
-                _logger.Error(e, e.Message);
+                GetGrainContextedLogger(grainType, grainReference, grainState).Error(e, e.Message);
+                if (_options.RethrowExceptions) throw;
             }
         }
 
@@ -134,9 +137,10 @@ namespace Orleans.Storage
         /// <summary>
         /// Throws InconsistentStateException if ETags don't match up.
         /// </summary>
-        private Task ValidateETag<T>(string currentETag, T storedDocument, Type stateType, GrainReference reference)
+        private Task ValidateETag<T>(string grainType, IGrainState grainState, T storedDocument, Type stateType, GrainReference reference)
         {
             var storedETag = GenerateETag(storedDocument, typeof(T));
+            var currentETag = grainState.ETag;
             if (storedETag != currentETag)
             {
                 if (_options.ThrowExceptionOnInconsistentETag) {
@@ -145,18 +149,13 @@ namespace Orleans.Storage
                         $"Inconsistent state detected while performing write operations for type:{stateType.Name}.", storedETag, currentETag);
                 }
 
-                _logger.Warning(
+                GetGrainContextedLogger(grainType, reference, grainState).Warning(
                     "Inconsistent state detected while performing write operations for type:{typeof(T).Name} for {GrainReference}.",
                     stateType.Name,
                     reference.ToKeyString());
             }
 
             return Task.CompletedTask;
-        }
-
-        private string GenerateETag<T>(object obj)
-        {
-            return GenerateETag(obj, typeof(T));
         }
 
         private string GenerateETag(object obj, Type type)
@@ -176,6 +175,16 @@ namespace Orleans.Storage
         public void Participate(ISiloLifecycle lifecycle)
         {
             lifecycle.Subscribe(OptionFormattingUtilities.Name<RedisGrainStorage>(_name), _options.InitStage, Init, Close);
+        }
+
+        private ILogger GetGrainContextedLogger(string grainType, GrainReference grainReference, IGrainState grainState)
+        {
+            return _logger.ForContext(new
+                Dictionary<string, object>{
+                    { "GrainType", grainType },
+                    { "GrainId", grainReference.ToString() },
+                    { "ETag", grainState.ETag }
+                });
         }
     }
 

@@ -11,7 +11,7 @@
     <Description>Common utilities used by Zuercher.Orleans.Persistence.Redis and Zuercher.Orleans.Streaming.Redis.</Description>
     <PackageProjectUrl>https://github.com/berdon/Orleans.Providers.Redis</PackageProjectUrl>
     <RepositoryUrl>https://github.com/berdon/Orleans.Providers.Redis</RepositoryUrl>
-    <PackageLicenseUrl>https://github.com/berdon/Orleans.Providers.Redis/blob/master/LICENSE</PackageLicenseUrl>
+    <License>https://github.com/berdon/Orleans.Providers.Redis/blob/master/LICENSE</License>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|AnyCPU'">
