@@ -192,7 +192,7 @@ namespace CoreTests.Integration
                     });
 
                     List<dynamic> items1 = null, items2 = null;
-                    using (var cts = GetTokenSource(TimeSpan.FromSeconds(messageCount1)))
+                    using (var cts = GetTokenSource())
                     {
                         var results = await Task.WhenAll(streamSubscriptionAwaiter1, streamSubscriptionAwaiter2).WaitAsync(cts.Token);
                         items1 = results[0];

@@ -9,7 +9,7 @@ Redis stream and storage providers for Microsoft Orleans.
 | [Zuercher.Orleans.Streaming.Redis](https://www.nuget.org/packages/Zuercher.Orleans.Streaming.Redis/) | [![NugGetVersion](https://img.shields.io/nuget/v/Zuercher.Orleans.Streaming.Redis.svg)](https://www.nuget.org/packages/Zuercher.Orleans.Streaming.Redis/) |
 
 
-# Installation
+## Installation
 
 ```bash
 # For redis storage
@@ -19,7 +19,7 @@ dotnet add package Zuercher.Orleans.Persistence.Redis
 dotnet add package Zuercher.Orleans.Streaming.Redis
 ```
 
-# Usage
+## Usage
 ```C#
 // Silo
 siloBuilder
@@ -32,4 +32,20 @@ siloBuilder
 clientBuilder
     .AddRedisStreams("RedisProvider", // Add the Redis stream provider,
         c => c.ConfigureRedis(options => options.ConnectionString = redisConfiguration.ConnectionString));
+```
+
+## Development
+
+### Building
+
+```bash
+dotnet build
+```
+
+### Running Tests
+
+```bash
+./scripts/start-test-deps.sh
+dotnet test
+./scripts/stop-test-deps.sh
 ```
